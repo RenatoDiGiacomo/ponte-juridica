@@ -12,7 +12,6 @@ export class AdvogadosService {
         assinatura: 'ativo',
         ...(especializacao && { especializacao }),
       },
-      include: { plano: true },
       select: {
         id: true, nome: true, email: true,
         especializacao: true, oab: true, assinatura: true,
