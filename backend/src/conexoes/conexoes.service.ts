@@ -27,6 +27,16 @@ export class ConexoesService {
     });
   }
 
+  meusClientes(advogadoId: number) {
+    return this.prisma.clienteAdvogado.findMany({
+      where: { advogadoId, softDelete: false },
+      orderBy: { dataVinculo: 'desc' },
+      include: {
+        cliente: { select: { id: true, nome: true, email: true, documento: true, dataCadastro: true } },
+      },
+    });
+  }
+
   async desconectar(id: number) {
     return this.prisma.clienteAdvogado.update({
       where: { id },

@@ -21,7 +21,7 @@ export function DashboardAdvogadoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([advogadosService.meuPerfil(), conexoesService.minhas()])
+    Promise.all([advogadosService.meuPerfil(), conexoesService.meusClientes()])
       .then(([{ data: p }, { data: c }]) => { setPerfil(p); setClientes(c); })
       .finally(() => setLoading(false));
   }, []);

@@ -27,145 +27,155 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between px-16 py-14">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Ponte Jurídica</h1>
-          <p className="text-blue-300 mt-2 text-sm">Plataforma de conexão jurídica</p>
-        </div>
+    <div className="min-h-screen flex flex-col lg:flex-row">
 
-        <div className="space-y-10">
-          <blockquote className="text-white text-2xl font-light leading-relaxed border-l-4 border-white/30 pl-6">
-            "Conectando pessoas ao advogado certo, no momento certo."
-          </blockquote>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { n: '500+', label: 'Advogados' },
-              { n: '3k+', label: 'Clientes' },
-              { n: '98%', label: 'Satisfação' },
-            ].map(({ n, label }) => (
-              <div key={label} className="bg-white/10 rounded-2xl p-5 text-center">
-                <p className="text-2xl font-bold text-white">{n}</p>
-                <p className="text-blue-300 text-xs mt-1 font-medium">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ── LEFT ── Hero */}
+      <div className="relative flex-1 bg-primary flex flex-col overflow-hidden min-h-[40vh] lg:min-h-screen">
+        {/* Radial glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_40%,_rgba(41,98,156,0.6),_transparent)]" />
+        {/* Grid overlay */}
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
 
-        <p className="text-blue-400 text-xs">© 2026 Ponte Jurídica · MBA Dev Full Stack — Impacta</p>
-      </div>
-
-      {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 py-12">
-        <div className="w-full max-w-md">
-
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <h1 className="text-3xl font-bold text-primary">Ponte Jurídica</h1>
-            <p className="text-gray-500 mt-1 text-sm">Conectando você ao advogado certo</p>
+        <div className="relative z-10 flex flex-col justify-between h-full px-10 py-12 lg:px-16 lg:py-16">
+          {/* Logo */}
+          <div>
+            <div className="bg-white rounded-2xl px-6 py-4 inline-block shadow-xl">
+              <img src="/logo-full.png" alt="Ponte Jurídica" className="h-12 w-auto" />
+            </div>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 px-10 py-10">
-
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-800">Bem-vindo de volta</h2>
-              <p className="text-gray-400 text-sm mt-1">Entre na sua conta para continuar</p>
-            </div>
-
-            {/* Tipo toggle */}
-            <div className="flex bg-gray-100 rounded-2xl p-1 mb-8">
-              {(['cliente', 'advogado'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTipo(t)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    tipo === t
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {t === 'cliente' ? '👤  Sou Cliente' : '⚖️  Sou Advogado'}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-2">E-mail</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-                  placeholder="seu@email.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-2">Senha</label>
-                <input
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
-              {erro && (
-                <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-red-600 text-sm font-medium">
-                  {erro}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-primary text-white py-4 rounded-xl font-semibold text-sm hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-60"
-              >
-                {loading ? 'Entrando...' : 'Entrar'}
-              </button>
-            </form>
-
-            {/* Demo hint */}
-            <div className="mt-6 bg-blue-50 border border-blue-100 rounded-2xl px-5 py-4 space-y-1.5">
-              <p className="text-xs font-bold text-blue-700 mb-2">
-                Contas demo · senha: <code className="font-mono bg-blue-100 px-1.5 py-0.5 rounded">senha123</code>
-              </p>
-              <p className="text-xs text-blue-600">
-                Cliente:{' '}
-                <button
-                  type="button"
-                  onClick={() => { setEmail('cliente.demo@pontejuridica.com'); setTipo('cliente'); }}
-                  className="underline underline-offset-2 hover:text-blue-800 font-medium"
-                >
-                  cliente.demo@pontejuridica.com
-                </button>
-              </p>
-              <p className="text-xs text-blue-600">
-                Advogado:{' '}
-                <button
-                  type="button"
-                  onClick={() => { setEmail('maria.demo@pontejuridica.com'); setTipo('advogado'); }}
-                  className="underline underline-offset-2 hover:text-blue-800 font-medium"
-                >
-                  maria.demo@pontejuridica.com
-                </button>
-              </p>
-            </div>
-
-            <p className="text-center text-sm text-gray-400 mt-6">
-              Não tem conta?{' '}
-              <Link to="/registro" className="text-primary font-semibold hover:underline">
-                Cadastre-se grátis
-              </Link>
+          {/* Main copy */}
+          <div className="my-auto py-12">
+            <p className="text-blue-300 text-sm font-bold uppercase tracking-widest mb-4">Marketplace Jurídico</p>
+            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-extrabold text-white leading-[1.1] mb-6">
+              Conectando<br />
+              <span className="text-secondary">pessoas</span> ao<br />
+              advogado certo
+            </h1>
+            <p className="text-blue-200 text-lg leading-relaxed max-w-sm">
+              A plataforma que une clientes e advogados de forma rápida, transparente e segura.
             </p>
 
+            {/* Stats */}
+            <div className="flex gap-8 mt-10">
+              {[
+                { n: '200+', label: 'Advogados' },
+                { n: '6', label: 'Especialidades' },
+                { n: '98%', label: 'Satisfação' },
+              ].map(({ n, label }) => (
+                <div key={label}>
+                  <p className="text-3xl font-extrabold text-white">{n}</p>
+                  <p className="text-blue-300 text-xs font-semibold mt-0.5 uppercase tracking-wide">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Bottom credits */}
+          <div>
+            <p className="text-blue-400 text-xs mb-2">© 2026 Ponte Jurídica · MBA Dev Full Stack — Impacta</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {[
+                'Alexandre Brito Borges',
+                'Rafael Augusto Mattiuzzo',
+                'Renato Di Giacomo',
+                'Ricardo Soares Matos',
+                'Thomás Réa Farias',
+              ].map(nome => (
+                <span key={nome} className="text-blue-500/70 text-xs font-medium">{nome}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT ── Form */}
+      <div className="w-full lg:w-[480px] xl:w-[520px] flex items-center justify-center bg-white px-8 py-12 lg:py-0">
+        <div className="w-full max-w-sm">
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-extrabold text-slate-800">Bem-vindo de volta</h2>
+            <p className="text-slate-400 text-sm mt-1">Acesse sua conta para continuar</p>
+          </div>
+
+          {/* Tipo */}
+          <div className="flex bg-slate-100 rounded-2xl p-1 mb-7">
+            {(['cliente', 'advogado'] as const).map((t) => (
+              <button key={t} type="button" onClick={() => setTipo(t)}
+                className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
+                  tipo === t ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {t === 'cliente' ? '👤  Cliente' : '⚖️  Advogado'}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">E-mail</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                placeholder="seu@email.com"
+                className="w-full border-2 border-slate-100 rounded-xl px-4 py-3.5 text-slate-800 text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-primary transition-colors bg-slate-50 focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Senha</label>
+              <input type="password" value={senha} onChange={e => setSenha(e.target.value)} required
+                placeholder="••••••••"
+                className="w-full border-2 border-slate-100 rounded-xl px-4 py-3.5 text-slate-800 text-sm font-medium placeholder-slate-300 focus:outline-none focus:border-primary transition-colors bg-slate-50 focus:bg-white"
+              />
+            </div>
+
+            {erro && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-red-600 text-sm font-medium">
+                <span>⚠️</span> {erro}
+              </div>
+            )}
+
+            <button type="submit" disabled={loading}
+              className="w-full bg-primary text-white py-4 rounded-xl font-bold text-sm hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-60 shadow-lg shadow-primary/20 mt-2"
+            >
+              {loading ? 'Entrando...' : `Entrar como ${tipo === 'cliente' ? 'Cliente' : 'Advogado'}`}
+            </button>
+          </form>
+
+          {/* Demo box */}
+          <div className="mt-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl px-5 py-4">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              Acesso demo · senha: <code className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-700 normal-case">senha123</code>
+            </p>
+            <div className="space-y-2">
+              <button type="button"
+                onClick={() => { setEmail('cliente.demo@pontejuridica.com'); setTipo('cliente'); }}
+                className="w-full text-left flex items-center gap-3 px-3 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
+              >
+                <span className="text-lg">👤</span>
+                <div>
+                  <p className="text-xs font-bold text-slate-700 group-hover:text-primary">Cliente</p>
+                  <p className="text-xs text-slate-400 font-mono">cliente.demo@pontejuridica.com</p>
+                </div>
+              </button>
+              <button type="button"
+                onClick={() => { setEmail('maria.demo@pontejuridica.com'); setTipo('advogado'); }}
+                className="w-full text-left flex items-center gap-3 px-3 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
+              >
+                <span className="text-lg">⚖️</span>
+                <div>
+                  <p className="text-xs font-bold text-slate-700 group-hover:text-primary">Advogado</p>
+                  <p className="text-xs text-slate-400 font-mono">maria.demo@pontejuridica.com</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-slate-400 mt-6">
+            Não tem conta?{' '}
+            <Link to="/registro" className="text-primary font-bold hover:underline">
+              Cadastre-se grátis →
+            </Link>
+          </p>
         </div>
       </div>
     </div>

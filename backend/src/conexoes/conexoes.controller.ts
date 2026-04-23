@@ -26,6 +26,12 @@ export class ConexoesController {
     return this.conexoes.minhasConexoes(usuario.id);
   }
 
+  @Get('clientes')
+  @ApiOperation({ summary: 'Listar clientes vinculados ao advogado logado' })
+  meusClientes(@UsuarioAtual() usuario: { id: number }) {
+    return this.conexoes.meusClientes(usuario.id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Remover vínculo (soft delete)' })
   desconectar(@Param('id', ParseIntPipe) id: number) {

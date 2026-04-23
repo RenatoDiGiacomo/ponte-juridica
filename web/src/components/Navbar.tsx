@@ -12,11 +12,8 @@ export function Navbar({ items = [] }: NavbarProps) {
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
         <div className="flex items-center gap-8 min-w-0">
-          <Link to="/" className="flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-              <span className="text-white font-black text-sm tracking-tight">PJ</span>
-            </div>
-            <span className="font-bold text-slate-800 text-base hidden sm:block">Ponte Jurídica</span>
+          <Link to="/" className="flex items-center shrink-0">
+            <img src="/logo-full.png" alt="Ponte Jurídica" className="h-9 w-auto" />
           </Link>
 
           {items.length > 0 && (
