@@ -1,47 +1,102 @@
 # Ponte Jurídica
 
-Plataforma de conexão entre clientes e advogados. Projeto do MBA Dev Full Stack — Impacta.
+Marketplace jurídico que conecta clientes (solicitantes) a advogados especializados.
+Projeto do MBA Dev Full Stack — Impacta, Grupo 1.
 
-## Contexto de negócio
+## Equipe
 
-Marketplace jurídico que conecta pessoas que precisam de assistência jurídica com advogados especializados. Advogados assinam planos mensais/anuais para aparecer na plataforma; clientes buscam e se vinculam a advogados por área de especialização.
+| Nome | Papel |
+|------|-------|
+| Rafael Mattiuzzo | Dev — back + front + infra |
+| Ricardo Matos | Scrum Master |
+| Rodrigo Di Giacomo | Product Owner |
+| Alexandre Borges | Dev |
+| Leandro | Dev — frontend / UX |
+| Renato Giacomo | Dev |
 
-## Stack definida
+## Stack
 
-- **Banco:** MySQL — `ponte_juridica` (já modelado, ver `Documentos/ProjetoDev/SQL - TABELAS.sql`)
-- **Backend:** (definir — Java Spring Boot? Node.js? .NET?)
-- **Frontend:** (definir)
+- **Backend:** NestJS 10 + TypeScript + Prisma ORM
+- **Mobile:** React Native + Expo SDK 51 + NativeWind (TailwindCSS)
+- **Banco:** MySQL 8 (Docker)
+- **Auth:** JWT (access + refresh)
+- **Infra:** Docker Compose
+
+## Estrutura do repositório
+
+```
+/
+├── backend/          # NestJS API
+├── mobile/           # React Native (Expo)
+├── docker-compose.yml
+├── .env.example
+└── Documentos/       # docs do MBA
+```
+
+## Comandos comuns
+
+```bash
+# Subir ambiente completo
+docker-compose up -d
+
+# Backend
+cd backend && npm run start:dev
+
+# Mobile
+cd mobile && npx expo start
+
+# Prisma — gerar migration após mudar schema
+cd backend && npx prisma migrate dev --name <descricao>
+
+# Prisma — seed inicial
+cd backend && npm run seed
+```
 
 ## Modelo de dados
 
 | Tabela | Descrição |
 |--------|-----------|
-| `plano` | Planos de assinatura (mensal/anual) |
-| `cliente` | Pessoas que buscam atendimento jurídico |
-| `adv` | Advogados com OAB e especialização |
-| `cliente_advogado` | Vínculo/processo entre cliente e advogado |
+| `Plano` | Básico (R$99/mês), Profissional (R$199/mês), Elite (R$399/mês) |
+| `Cliente` | Solicitante de serviços jurídicos |
+| `Advogado` | OAB + especialização + plano de assinatura |
+| `ClienteAdvogado` | Vínculo/processo entre cliente e advogado |
 
-Todas as tabelas usam `soft_delete BOOLEAN` — nunca deletar registros fisicamente.
+**Regra crítica:** todas as entidades usam `softDelete Boolean @default(false)` — nunca deletar fisicamente.
 
-## Sprints
+## Especializações de advogados
 
-- Sprint 01–04 concluídos (ver `Documentos/Sprints/`)
-- Sprints em andamento: (atualizar)
+Criminal, Trabalhista, Família, Cível, Tributário, Previdenciário
 
-## Documentos importantes
+## Planos
 
-- `Documentos/Projeto Ponte Juridica.docx` — documento principal do projeto
-- `Documentos/ProjetoDev/SQL - TABELAS.sql` — DDL completo
-- `Documentos/Sprints/` — histórico de sprints
-- `Marca/Brand Guide — Ponte Jurídica.pdf` — identidade visual
+| Plano | Mensal | Anual |
+|-------|--------|-------|
+| Básico | R$ 99,00 | R$ 830,00 |
+| Profissional | R$ 199,00 | R$ 1.430,00 |
+| Elite | R$ 399,00 | R$ 2.400,00 |
+
+## Módulos da API (NestJS)
+
+- `auth` — login/registro, JWT
+- `clientes` — CRUD clientes/solicitantes
+- `advogados` — CRUD advogados + OAB + especialização
+- `planos` — listagem e gerenciamento de planos
+- `conexoes` — vínculo cliente ↔ advogado (processos)
+
+## User Stories planejadas (Sprint 01)
+
+| ID | História | Status |
+|----|----------|--------|
+| US-01 | Cadastro do Solicitante | Em andamento |
+| US-02 | Criação de Post de Processo | Não concluído |
+| US-03 | Cadastro do Advogado (com plano) | Em andamento |
+| US-04 | Listagem de Processos para Advogado | Não concluído |
+| US-05 | Sistema de Taxas da Plataforma | Não concluído |
 
 ## Convenções
 
-- Soft delete obrigatório em todas as entidades — nunca `DELETE` físico
+- Soft delete obrigatório — nunca `DELETE` físico no banco
 - Commits em português, Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`)
-- (adicionar mais conforme o projeto evoluir)
-
-## Integrantes do grupo
-
-- Rafael Mattiuzzo
-- (adicionar demais)
+- Branch padrão: `main`. Features em `feat/<nome>`
+- API responde sempre em português (mensagens de erro, etc.)
+- Endpoints REST: `/api/v1/<recurso>`

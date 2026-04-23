@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Plano {
+  id           Int        @id @default(autoincrement())
+  nome         String     @db.VarChar(50)
+  valorMensal  Decimal    @map("valor_mensal") @db.Decimal(10, 2)
+  valorAnual   Decimal    @map("valor_anual") @db.Decimal(10, 2)
+  softDelete   Boolean    @default(false) @map("soft_delete")
+  advogados    Advogado[]
+
+  @@map("plano")
+}
+
+model Cliente {
+  id           Int               @id @default(autoincrement())
+  nome         String            @db.VarChar(255)
+  email        String            @unique @db.VarChar(255)
+  documento    String            @db.VarChar(20)
+  senha        String            @db.VarChar(255)
+  dataCadastro DateTime          @default(now()) @map("data_cadastro")
+  softDelete   Boolean           @default(false) @map("soft_delete")
+  conexoes     ClienteAdvogado[]
+
+  @@map("cliente")
+}
+
+model Advogado {
+  id             Int               @id @default(autoincrement())
+  nome           String            @db.VarChar(255)
+  email          String            @unique @db.VarChar(255)
+  senha          String            @db.VarChar(255)
+  especializacao String            @db.VarChar(100)
+  oab            String            @unique @db.VarChar(20)
+  dataCadastro   DateTime          @default(now()) @map("data_cadastro")
+  planoId        Int               @map("plano_id")
+  assinatura     AssinaturaStatus  @default(ativo)
+  softDelete     Boolean           @default(false) @map("soft_delete")
+  plano          Plano             @relation(fields: [planoId], references: [id])
+  conexoes       ClienteAdvogado[]
+
+  @@map("adv")
+}
+
+model ClienteAdvogado {
+  id          Int      @id @default(autoincrement())
+  clienteId   Int      @map("id_cliente")
+  advogadoId  Int      @map("id_advogado")
+  dataVinculo DateTime @default(now()) @map("data_vinculo")
+  softDelete  Boolean  @default(false) @map("soft_delete")
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  advogado    Advogado @relation(fields: [advogadoId], references: [id])
+
+  @@map("cliente_advogado")
+}
+
+enum AssinaturaStatus {
+  ativo
+  pendente
+  cancelado
+}

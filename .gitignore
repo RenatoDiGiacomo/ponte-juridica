@@ -30,3 +30,14 @@ desktop.ini
 
 # Claude Code
 .claude/settings.local.json
+
+# Env
+.env
+backend/.env
+mobile/.env
+
+# Build
+backend/dist/
+mobile/.expo/
+mobile/android/
+mobile/ios/
