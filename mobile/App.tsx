@@ -15,10 +15,16 @@ import { RegistroAdvogadoScreen } from './src/screens/auth/RegistroAdvogadoScree
 // Cliente screens
 import { BuscarAdvogadosScreen } from './src/screens/cliente/BuscarAdvogadosScreen';
 import { MinhasConexoesScreen } from './src/screens/cliente/MinhasConexoesScreen';
+import { MeusProcessosScreen } from './src/screens/cliente/MeusProcessosScreen';
+import { CriarProcessoScreen } from './src/screens/cliente/CriarProcessoScreen';
+import { PerfilClienteScreen } from './src/screens/cliente/PerfilClienteScreen';
+import { usePropostasPendentes } from './src/hooks/usePropostasPendentes';
 
 // Advogado screens
 import { PerfilAdvogadoScreen } from './src/screens/advogado/PerfilAdvogadoScreen';
 import { ClientesAdvogadoScreen } from './src/screens/advogado/ClientesAdvogadoScreen';
+import { OportunidadesScreen } from './src/screens/advogado/OportunidadesScreen';
+import { EnviarPropostaScreen } from './src/screens/advogado/EnviarPropostaScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -58,24 +64,95 @@ function AuthStack() {
   );
 }
 
-function ClienteTabs() {
+function MeusCasosStack() {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: '#1E3A5F',
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: { paddingBottom: 4 },
-      }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: true, headerTintColor: '#1E3A5F' }}>
+      <Stack.Screen
+        name="MeusProcessos"
+        component={MeusProcessosScreen}
+        options={{ title: 'Meus Casos' }}
+      />
+      <Stack.Screen
+        name="CriarProcesso"
+        component={CriarProcessoScreen}
+        options={{ title: 'Publicar caso', presentation: 'modal' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function OportunidadesStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: true, headerTintColor: '#1E3A5F' }}>
+      <Stack.Screen
+        name="ListaOportunidades"
+        component={OportunidadesScreen}
+        options={{ title: 'Oportunidades' }}
+      />
+      <Stack.Screen
+        name="EnviarProposta"
+        component={EnviarPropostaScreen}
+        options={{ title: 'Enviar proposta', presentation: 'modal' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+const tabIcon = (emoji: string) => ({ color }: { color: string }) => (
+  <Text style={{ fontSize: 22, color, lineHeight: 30, textAlign: 'center' }}>{emoji}</Text>
+);
+
+const baseTabScreenOptions = {
+  tabBarActiveTintColor: '#1E3A5F',
+  tabBarInactiveTintColor: '#9CA3AF',
+  tabBarStyle: { height: 88, paddingTop: 12, paddingBottom: 14 },
+  tabBarLabelStyle: { fontSize: 12, fontWeight: '600' as const, marginTop: 6 },
+  headerShown: false,
+};
+
+function ClienteTabs() {
+  const pendentes = usePropostasPendentes();
+  return (
+    <Tab.Navigator screenOptions={baseTabScreenOptions}>
+      <Tab.Screen
+        name="MeusCasos"
+        component={MeusCasosStack}
+        options={{
+          title: 'Meus Casos',
+          tabBarLabel: 'Casos',
+          tabBarIcon: tabIcon('📂'),
+          tabBarBadge: pendentes > 0 ? pendentes : undefined,
+        }}
+      />
       <Tab.Screen
         name="Buscar"
         component={BuscarAdvogadosScreen}
-        options={{ title: 'Buscar Advogados', tabBarLabel: 'Buscar' }}
+        options={{
+          title: 'Buscar Advogados',
+          tabBarLabel: 'Buscar',
+          tabBarIcon: tabIcon('🔍'),
+          headerShown: true,
+        }}
       />
       <Tab.Screen
         name="Conexoes"
         component={MinhasConexoesScreen}
-        options={{ title: 'Meus Advogados', tabBarLabel: 'Meus Advogados' }}
+        options={{
+          title: 'Meus Advogados',
+          tabBarLabel: 'Vinculados',
+          tabBarIcon: tabIcon('🤝'),
+          headerShown: true,
+        }}
+      />
+      <Tab.Screen
+        name="PerfilCliente"
+        component={PerfilClienteScreen}
+        options={{
+          title: 'Minha Conta',
+          tabBarLabel: 'Conta',
+          tabBarIcon: tabIcon('👤'),
+          headerShown: true,
+        }}
       />
     </Tab.Navigator>
   );
@@ -83,22 +160,31 @@ function ClienteTabs() {
 
 function AdvogadoTabs() {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: '#1E3A5F',
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: { paddingBottom: 4 },
-      }}
-    >
+    <Tab.Navigator screenOptions={baseTabScreenOptions}>
       <Tab.Screen
-        name="Perfil"
-        component={PerfilAdvogadoScreen}
-        options={{ title: 'Meu Perfil', tabBarLabel: 'Perfil' }}
+        name="Oportunidades"
+        component={OportunidadesStack}
+        options={{ tabBarLabel: 'Oportunidades', tabBarIcon: tabIcon('💼') }}
       />
       <Tab.Screen
         name="Clientes"
         component={ClientesAdvogadoScreen}
-        options={{ title: 'Meus Clientes', tabBarLabel: 'Clientes' }}
+        options={{
+          title: 'Meus Clientes',
+          tabBarLabel: 'Clientes',
+          tabBarIcon: tabIcon('👥'),
+          headerShown: true,
+        }}
+      />
+      <Tab.Screen
+        name="Perfil"
+        component={PerfilAdvogadoScreen}
+        options={{
+          title: 'Meu Perfil',
+          tabBarLabel: 'Perfil',
+          tabBarIcon: tabIcon('👤'),
+          headerShown: true,
+        }}
       />
     </Tab.Navigator>
   );
