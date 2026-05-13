@@ -44,6 +44,26 @@ export class AuthService {
     return cliente;
   }
 
+  async me(usuarioId: number, tipo: 'cliente' | 'advogado') {
+    if (tipo === 'cliente') {
+      const c = await this.prisma.cliente.findFirst({
+        where: { id: usuarioId, softDelete: false },
+        select: { id: true, nome: true, email: true, documento: true, dataCadastro: true },
+      });
+      if (!c) throw new UnauthorizedException();
+      return { ...c, tipo: 'cliente' as const };
+    }
+    const a = await this.prisma.advogado.findFirst({
+      where: { id: usuarioId, softDelete: false },
+      select: {
+        id: true, nome: true, email: true, oab: true, especializacao: true,
+        dataCadastro: true, plano: { select: { id: true, nome: true } },
+      },
+    });
+    if (!a) throw new UnauthorizedException();
+    return { ...a, tipo: 'advogado' as const };
+  }
+
   async registrarAdvogado(dto: RegisterAdvogadoDto) {
     const existe = await this.prisma.advogado.findFirst({ where: { email: dto.email } });
     if (existe) throw new ConflictException('E-mail já cadastrado');
