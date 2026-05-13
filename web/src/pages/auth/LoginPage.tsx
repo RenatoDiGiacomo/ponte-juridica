@@ -2,6 +2,24 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
+type DemoUser = {
+  label: string;
+  email: string;
+  tipo: 'cliente' | 'advogado';
+  hint: string;
+  icon: string;
+};
+
+const DEMO_USERS: DemoUser[] = [
+  { label: 'João Silva', tipo: 'cliente', email: 'cliente.demo@pontejuridica.com', icon: '👤', hint: 'Caso em atendimento + propostas pendentes' },
+  { label: 'Mariana Souza', tipo: 'cliente', email: 'mariana@pontejuridica.com', icon: '👤', hint: 'Caso de Família com proposta' },
+  { label: 'Dra. Maria Ferreira', tipo: 'advogado', email: 'maria.demo@pontejuridica.com', icon: '⚖️', hint: 'Trabalhista · plano Profissional (20/mês)' },
+  { label: 'Dra. Juliana Costa', tipo: 'advogado', email: 'juliana@pontejuridica.com', icon: '⚖️', hint: 'Cível · plano Básico (5/mês)' },
+  { label: 'Dr. Carlos Mendes', tipo: 'advogado', email: 'carlos@pontejuridica.com', icon: '⚖️', hint: 'Criminal · plano Elite (ilimitado)' },
+];
+
+const SENHA_DEMO = 'senha123';
+
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -21,6 +39,30 @@ export function LoginPage() {
       navigate('/');
     } catch {
       setErro('E-mail ou senha inválidos');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function preencherDemo(u: DemoUser) {
+    setEmail(u.email);
+    setSenha(SENHA_DEMO);
+    setTipo(u.tipo);
+    setErro('');
+  }
+
+  async function entrarComoDemo(u: DemoUser) {
+    setEmail(u.email);
+    setSenha(SENHA_DEMO);
+    setTipo(u.tipo);
+    setErro('');
+    setLoading(true);
+    try {
+      if (u.tipo === 'cliente') await loginCliente(u.email, SENHA_DEMO);
+      else await loginAdvogado(u.email, SENHA_DEMO);
+      navigate('/');
+    } catch {
+      setErro('Não foi possível entrar como demo. O backend está rodando?');
     } finally {
       setLoading(false);
     }
@@ -143,30 +185,50 @@ export function LoginPage() {
 
           {/* Demo box */}
           <div className="mt-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl px-5 py-4">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-              Acesso demo · senha: <code className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-700 normal-case">senha123</code>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Acesso r&aacute;pido demo
+            </p>
+            <p className="text-xs text-slate-400 mb-3">
+              Clique no card para entrar direto. Senha: <code className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-700">senha123</code>
             </p>
             <div className="space-y-2">
-              <button type="button"
-                onClick={() => { setEmail('cliente.demo@pontejuridica.com'); setTipo('cliente'); }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
-              >
-                <span className="text-lg">👤</span>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 group-hover:text-primary">Cliente</p>
-                  <p className="text-xs text-slate-400 font-mono">cliente.demo@pontejuridica.com</p>
+              {DEMO_USERS.map((u) => (
+                <div
+                  key={u.email}
+                  className="flex items-stretch bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-primary/50 transition-all"
+                >
+                  <button
+                    type="button"
+                    onClick={() => entrarComoDemo(u)}
+                    disabled={loading}
+                    className="flex-1 text-left flex items-center gap-3 px-3 py-2.5 hover:bg-primary/5 group"
+                  >
+                    <span className="text-lg">{u.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold text-slate-700 group-hover:text-primary truncate">
+                          {u.label}
+                        </p>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                          u.tipo === 'cliente' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {u.tipo}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 truncate">{u.hint}</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => preencherDemo(u)}
+                    disabled={loading}
+                    title="Apenas preencher os campos"
+                    className="px-3 border-l border-slate-200 text-slate-400 hover:text-primary hover:bg-slate-50"
+                  >
+                    ✎
+                  </button>
                 </div>
-              </button>
-              <button type="button"
-                onClick={() => { setEmail('maria.demo@pontejuridica.com'); setTipo('advogado'); }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
-              >
-                <span className="text-lg">⚖️</span>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 group-hover:text-primary">Advogado</p>
-                  <p className="text-xs text-slate-400 font-mono">maria.demo@pontejuridica.com</p>
-                </div>
-              </button>
+              ))}
             </div>
           </div>
 
