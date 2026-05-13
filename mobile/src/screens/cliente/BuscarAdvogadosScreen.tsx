@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { advogadosService, conexoesService } from '../../services/api';
 
 const ESPECIALIZACOES = ['Todos', 'Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
@@ -36,21 +36,22 @@ export function BuscarAdvogadosScreen() {
   return (
     <View className="flex-1 bg-background">
       {/* Filtros */}
-      <FlatList
-        horizontal
-        data={ESPECIALIZACOES}
-        keyExtractor={(i) => i}
-        showsHorizontalScrollIndicator={false}
-        className="py-3 px-4 max-h-14"
-        renderItem={({ item }) => (
+      <View className="flex-row flex-wrap gap-2 px-4 py-3">
+        {ESPECIALIZACOES.map((item) => (
           <TouchableOpacity
+            key={item}
             onPress={() => setFiltro(item)}
-            className={`px-4 py-2 rounded-full mr-2 ${filtro === item ? 'bg-primary' : 'bg-white border border-gray-300'}`}
+            style={{ flexGrow: 0, flexShrink: 0 }}
+            className={`px-4 py-2 rounded-full border ${
+              filtro === item ? 'bg-primary border-primary' : 'bg-white border-gray-300'
+            }`}
           >
-            <Text className={filtro === item ? 'text-white font-medium' : 'text-gray-600'}>{item}</Text>
+            <Text className={filtro === item ? 'text-white font-medium' : 'text-gray-600'}>
+              {item}
+            </Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </View>
 
       {loading ? (
         <ActivityIndicator className="mt-10" color="#1E3A5F" />
