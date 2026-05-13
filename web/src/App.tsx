@@ -4,7 +4,12 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { RegistroPage } from './pages/auth/RegistroPage';
 import { BuscarAdvogadosPage } from './pages/cliente/BuscarAdvogadosPage';
 import { MinhasConexoesPage } from './pages/cliente/MinhasConexoesPage';
-import { DashboardAdvogadoPage } from './pages/advogado/DashboardAdvogadoPage';
+import { MeusCasosPage } from './pages/cliente/MeusCasosPage';
+import { CriarCasoPage } from './pages/cliente/CriarCasoPage';
+import { PerfilClientePage } from './pages/cliente/PerfilClientePage';
+import { OportunidadesPage } from './pages/advogado/OportunidadesPage';
+import { MeusClientesPage } from './pages/advogado/MeusClientesPage';
+import { PerfilAdvogadoPage } from './pages/advogado/PerfilAdvogadoPage';
 
 function AppRoutes() {
   const { token, tipo, isLoading } = useAuth();
@@ -26,8 +31,11 @@ function AppRoutes() {
   if (tipo === 'cliente') {
     return (
       <Routes>
-        <Route path="/" element={<BuscarAdvogadosPage />} />
+        <Route path="/" element={<MeusCasosPage />} />
+        <Route path="/casos/novo" element={<CriarCasoPage />} />
+        <Route path="/buscar" element={<BuscarAdvogadosPage />} />
         <Route path="/minhas-conexoes" element={<MinhasConexoesPage />} />
+        <Route path="/perfil" element={<PerfilClientePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -36,7 +44,9 @@ function AppRoutes() {
   if (tipo === 'advogado') {
     return (
       <Routes>
-        <Route path="/" element={<DashboardAdvogadoPage />} />
+        <Route path="/" element={<OportunidadesPage />} />
+        <Route path="/meus-clientes" element={<MeusClientesPage />} />
+        <Route path="/perfil" element={<PerfilAdvogadoPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );

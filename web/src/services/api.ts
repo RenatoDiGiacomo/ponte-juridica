@@ -13,6 +13,7 @@ export const authService = {
   loginAdvogado: (email: string, senha: string) => api.post('/auth/advogado/login', { email, senha }),
   registrarCliente: (data: object) => api.post('/auth/cliente/registro', data),
   registrarAdvogado: (data: object) => api.post('/auth/advogado/registro', data),
+  me: () => api.get('/auth/me'),
 };
 
 export const advogadosService = {
@@ -30,4 +31,24 @@ export const conexoesService = {
   minhas: () => api.get('/conexoes'),
   meusClientes: () => api.get('/conexoes/clientes'),
   remover: (id: number) => api.delete(`/conexoes/${id}`),
+};
+
+export const processosService = {
+  // cliente
+  criar: (data: { titulo: string; descricao: string; especializacao: string }) =>
+    api.post('/processos', data),
+  meus: () => api.get('/processos/meus'),
+  pendentes: () => api.get<{ total: number }>('/processos/meus/pendentes'),
+  remover: (id: number) => api.delete(`/processos/${id}`),
+  aceitarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/aceitar`),
+  recusarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/recusar`),
+  // advogado
+  abertos: (especializacao?: string) =>
+    api.get('/processos', { params: especializacao ? { especializacao } : {} }),
+  detalhe: (id: number) => api.get(`/processos/${id}`),
+  enviarProposta: (
+    processoId: number,
+    data: { mensagem: string; valorEstimado: number },
+  ) => api.post(`/processos/${processoId}/propostas`, data),
+  quota: () => api.get<{ plano: string; limite: number | null; usadas: number; restantes: number | null }>('/propostas/quota'),
 };

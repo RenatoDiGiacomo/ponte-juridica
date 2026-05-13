@@ -3,8 +3,10 @@ import { advogadosService, conexoesService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 
 const NAV = [
-  { label: 'Encontrar Advogado', to: '/' },
-  { label: 'Meus Advogados', to: '/minhas-conexoes' },
+  { label: 'Meus Casos', to: '/' },
+  { label: 'Encontrar Advogado', to: '/buscar' },
+  { label: 'Vinculados', to: '/minhas-conexoes' },
+  { label: 'Minha Conta', to: '/perfil' },
 ];
 
 const AREAS = [
