@@ -9,10 +9,10 @@ Projeto do MBA Dev Full Stack — Impacta, Grupo 1.
 |------|-------|
 | Rafael Mattiuzzo | Dev — back + front + infra |
 | Ricardo Matos | Scrum Master |
-| Rodrigo Di Giacomo | Product Owner |
+| Renato Di Giacomo | Product Owner |
 | Alexandre Borges | Dev |
 | Leandro | Dev — frontend / UX |
-| Renato Giacomo | Dev |
+
 
 ## Stack
 
