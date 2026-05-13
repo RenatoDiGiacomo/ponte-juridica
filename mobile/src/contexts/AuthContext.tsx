@@ -15,43 +15,50 @@ interface AuthContextData {
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
+const KEY_TOKEN = '@pontejuridica:token';
+const KEY_TIPO = '@pontejuridica:tipo';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [tipo, setTipo] = useState<Tipo>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.multiGet(['@pontejuridica:token', '@pontejuridica:tipo']).then(
-      ([t, tp]) => {
-        setToken(t[1]);
-        setTipo(tp[1] as Tipo);
+    (async () => {
+      try {
+        const [t, tp] = await Promise.all([
+          AsyncStorage.getItem(KEY_TOKEN),
+          AsyncStorage.getItem(KEY_TIPO),
+        ]);
+        setToken(t);
+        setTipo(tp as Tipo);
+      } catch (e) {
+        console.warn('AuthContext: falha ao ler storage', e);
+      } finally {
         setIsLoading(false);
-      },
-    );
+      }
+    })();
   }, []);
 
   async function loginCliente(email: string, senha: string) {
     const { data } = await authService.loginCliente(email, senha);
-    await AsyncStorage.multiSet([
-      ['@pontejuridica:token', data.access_token],
-      ['@pontejuridica:tipo', 'cliente'],
-    ]);
+    await AsyncStorage.setItem(KEY_TOKEN, data.access_token);
+    await AsyncStorage.setItem(KEY_TIPO, 'cliente');
     setToken(data.access_token);
     setTipo('cliente');
   }
 
   async function loginAdvogado(email: string, senha: string) {
     const { data } = await authService.loginAdvogado(email, senha);
-    await AsyncStorage.multiSet([
-      ['@pontejuridica:token', data.access_token],
-      ['@pontejuridica:tipo', 'advogado'],
-    ]);
+    await AsyncStorage.setItem(KEY_TOKEN, data.access_token);
+    await AsyncStorage.setItem(KEY_TIPO, 'advogado');
     setToken(data.access_token);
     setTipo('advogado');
   }
 
   async function logout() {
-    await AsyncStorage.multiRemove(['@pontejuridica:token', '@pontejuridica:tipo']);
+    await AsyncStorage.removeItem(KEY_TOKEN);
+    await AsyncStorage.removeItem(KEY_TIPO);
     setToken(null);
     setTipo(null);
   }
