@@ -8,12 +8,12 @@ datasource db {
 }
 
 model Plano {
-  id           Int        @id @default(autoincrement())
-  nome         String     @db.VarChar(50)
-  valorMensal  Decimal    @map("valor_mensal") @db.Decimal(10, 2)
-  valorAnual   Decimal    @map("valor_anual") @db.Decimal(10, 2)
-  softDelete   Boolean    @default(false) @map("soft_delete")
-  advogados    Advogado[]
+  id          Int        @id @default(autoincrement())
+  nome        String     @db.VarChar(50)
+  valorMensal Decimal    @map("valor_mensal") @db.Decimal(10, 2)
+  valorAnual  Decimal    @map("valor_anual") @db.Decimal(10, 2)
+  softDelete  Boolean    @default(false) @map("soft_delete")
+  advogados   Advogado[]
 
   @@map("plano")
 }
@@ -27,6 +27,7 @@ model Cliente {
   dataCadastro DateTime          @default(now()) @map("data_cadastro")
   softDelete   Boolean           @default(false) @map("soft_delete")
   conexoes     ClienteAdvogado[]
+  processos    Processo[]
 
   @@map("cliente")
 }
@@ -44,6 +45,7 @@ model Advogado {
   softDelete     Boolean           @default(false) @map("soft_delete")
   plano          Plano             @relation(fields: [planoId], references: [id])
   conexoes       ClienteAdvogado[]
+  propostas      Proposta[]
 
   @@map("adv")
 }
@@ -64,4 +66,48 @@ enum AssinaturaStatus {
   ativo
   pendente
   cancelado
+}
+
+model Processo {
+  id             Int            @id @default(autoincrement())
+  clienteId      Int            @map("id_cliente")
+  titulo         String         @db.VarChar(150)
+  descricao      String         @db.Text
+  especializacao String         @db.VarChar(100)
+  status         ProcessoStatus @default(aberto)
+  dataCriacao    DateTime       @default(now()) @map("data_criacao")
+  softDelete     Boolean        @default(false) @map("soft_delete")
+  cliente        Cliente        @relation(fields: [clienteId], references: [id])
+  propostas      Proposta[]
+
+  @@index([especializacao, status, softDelete])
+  @@map("processo")
+}
+
+model Proposta {
+  id            Int            @id @default(autoincrement())
+  processoId    Int            @map("id_processo")
+  advogadoId    Int            @map("id_advogado")
+  mensagem      String         @db.Text
+  valorEstimado Decimal        @map("valor_estimado") @db.Decimal(10, 2)
+  status        PropostaStatus @default(pendente)
+  dataCriacao   DateTime       @default(now()) @map("data_criacao")
+  softDelete    Boolean        @default(false) @map("soft_delete")
+  processo      Processo       @relation(fields: [processoId], references: [id])
+  advogado      Advogado       @relation(fields: [advogadoId], references: [id])
+
+  @@unique([processoId, advogadoId])
+  @@map("proposta")
+}
+
+enum ProcessoStatus {
+  aberto
+  em_atendimento
+  encerrado
+}
+
+enum PropostaStatus {
+  pendente
+  aceita
+  recusada
 }
