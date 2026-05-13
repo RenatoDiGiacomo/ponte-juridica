@@ -3,7 +3,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View, Text } from 'react-native';
+import { ActivityIndicator, View, Text, Image } from 'react-native';
 
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 
@@ -70,12 +70,16 @@ function MeusCasosStack() {
       <Stack.Screen
         name="MeusProcessos"
         component={MeusProcessosScreen}
-        options={{ title: 'Meus Casos' }}
+        options={{ title: 'Meus Casos', headerTitle: headerTituloComLogo('Meus Casos') }}
       />
       <Stack.Screen
         name="CriarProcesso"
         component={CriarProcessoScreen}
-        options={{ title: 'Publicar caso', presentation: 'modal' }}
+        options={{
+          title: 'Publicar caso',
+          presentation: 'modal',
+          headerTitle: headerTituloComLogo('Publicar caso'),
+        }}
       />
     </Stack.Navigator>
   );
@@ -87,12 +91,16 @@ function OportunidadesStack() {
       <Stack.Screen
         name="ListaOportunidades"
         component={OportunidadesScreen}
-        options={{ title: 'Oportunidades' }}
+        options={{ title: 'Oportunidades', headerTitle: headerTituloComLogo('Oportunidades') }}
       />
       <Stack.Screen
         name="EnviarProposta"
         component={EnviarPropostaScreen}
-        options={{ title: 'Enviar proposta', presentation: 'modal' }}
+        options={{
+          title: 'Enviar proposta',
+          presentation: 'modal',
+          headerTitle: headerTituloComLogo('Enviar proposta'),
+        }}
       />
     </Stack.Navigator>
   );
@@ -100,6 +108,17 @@ function OportunidadesStack() {
 
 const tabIcon = (emoji: string) => ({ color }: { color: string }) => (
   <Text style={{ fontSize: 22, color, lineHeight: 30, textAlign: 'center' }}>{emoji}</Text>
+);
+
+const headerTituloComLogo = (titulo: string) => () => (
+  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <Image
+      source={require('./assets/logo.png')}
+      style={{ width: 32, height: 22, marginRight: 8 }}
+      resizeMode="contain"
+    />
+    <Text style={{ fontSize: 17, fontWeight: '700', color: '#1E3A5F' }}>{titulo}</Text>
+  </View>
 );
 
 const baseTabScreenOptions = {
@@ -132,6 +151,7 @@ function ClienteTabs() {
           tabBarLabel: 'Buscar',
           tabBarIcon: tabIcon('🔍'),
           headerShown: true,
+          headerTitle: headerTituloComLogo('Buscar Advogados'),
         }}
       />
       <Tab.Screen
@@ -142,6 +162,7 @@ function ClienteTabs() {
           tabBarLabel: 'Vinculados',
           tabBarIcon: tabIcon('🤝'),
           headerShown: true,
+          headerTitle: headerTituloComLogo('Meus Advogados'),
         }}
       />
       <Tab.Screen
@@ -152,6 +173,7 @@ function ClienteTabs() {
           tabBarLabel: 'Conta',
           tabBarIcon: tabIcon('👤'),
           headerShown: true,
+          headerTitle: headerTituloComLogo('Minha Conta'),
         }}
       />
     </Tab.Navigator>
@@ -174,6 +196,7 @@ function AdvogadoTabs() {
           tabBarLabel: 'Clientes',
           tabBarIcon: tabIcon('👥'),
           headerShown: true,
+          headerTitle: headerTituloComLogo('Meus Clientes'),
         }}
       />
       <Tab.Screen
@@ -184,6 +207,7 @@ function AdvogadoTabs() {
           tabBarLabel: 'Perfil',
           tabBarIcon: tabIcon('👤'),
           headerShown: true,
+          headerTitle: headerTituloComLogo('Meu Perfil'),
         }}
       />
     </Tab.Navigator>

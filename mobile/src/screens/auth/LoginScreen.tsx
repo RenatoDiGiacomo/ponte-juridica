@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 
 type DemoUser = {
@@ -66,7 +66,14 @@ export function LoginScreen({ navigation }: any) {
       contentContainerClassName="px-6 py-12"
       keyboardShouldPersistTaps="handled"
     >
-      <Text className="text-3xl font-bold text-primary text-center mb-2 mt-6">
+      <View className="items-center mt-6 mb-2">
+        <Image
+          source={require('../../../assets/logo.png')}
+          style={{ width: 180, height: 100 }}
+          resizeMode="contain"
+        />
+      </View>
+      <Text className="text-3xl font-bold text-primary text-center mb-2">
         Ponte Jurídica
       </Text>
       <Text className="text-gray-500 text-center mb-8">
