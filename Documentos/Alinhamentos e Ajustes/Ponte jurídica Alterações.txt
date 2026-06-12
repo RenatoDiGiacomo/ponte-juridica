@@ -1,0 +1,59 @@
+Ponte jurídica Alterações
+
+WEB:
+CLIENTE:
+menu superior para filtros:
+-- tipo de processo,
+-- status
+-- valores decrescente/ascendente 
+
+Diminuir o titulo meus casos 
+colocar na lateral esquerda uma lista de propostas enviadas, e clicando nesses casos abrir as solicitações de proposta
+
+https://claude.ai/share/3137fce9-a910-4818-b556-550fb86fe472
+
+Não exatamente assim mas algo dessa forma com as cores corretas
+
+Inserir modal invés de window.confirm()
+
+Encontrar Advogado:
+ - filtro fora o existente  de tipo de advogado, inserir filtro de nota, estado de atuação do advogado, se já tem vinculo ou não
+
+
+Meus Advogados:
+Inserir listagem de de contatos mostrando todos 
+Email, telefone, whatsapp
+
+Minha conta:
+ inserir/alterar foto, inserir/alterar documentos cpf/CNPJ dados básicos Idade,nome completo, email
+o que não será mostrado apenas para plataforma e para si mesmo :
+endereço completo, telefones
+
+
+WEB:
+Advogado:
+
+Inserir no menu, "Meus Casos"
+Mostrando as situações de casos como aberto, em processo opu fechado, 
+na página na situação do caso, abrir campo de informações, altos, e detalhes como relatório de situação
+
+
+
+Informação de proposta restantes, modificar para apenas numero pequeno e clicando abrirá um modal ofertando update 1/20
+
+
+filtro de pesquisas: 
+fora as áreas, tempo de postagem, região de atendimento (estado/cidade)
+visual:
+ de casos com blocos retangulares mostrando de 20/30/50/100 (filtro de quantidade)
+
+
+Meus Clientes :
+Adicionar filtros de clientes por CPF/CNPJ/ Nome
+
+em Meu Perfil, 
+no plano, abrir botão de UPDATE de plano, 
+botão de alterar dados, como Nome, OAB, área do advogado. 
+permitir mais de uma área
+
+
