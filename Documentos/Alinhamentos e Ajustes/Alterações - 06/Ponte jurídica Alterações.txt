@@ -1,0 +1,8 @@
+Ponte jurídica Alterações
+
+WEB:
+CLIENTE:
+menu superior para filtros:
+-- tipo de processo,
+-- status
+-- valores decrescente/ascendente 
