@@ -19,15 +19,26 @@ model Plano {
 }
 
 model Cliente {
-  id           Int               @id @default(autoincrement())
-  nome         String            @db.VarChar(255)
-  email        String            @unique @db.VarChar(255)
-  documento    String            @db.VarChar(20)
-  senha        String            @db.VarChar(255)
-  dataCadastro DateTime          @default(now()) @map("data_cadastro")
-  softDelete   Boolean           @default(false) @map("soft_delete")
-  conexoes     ClienteAdvogado[]
-  processos    Processo[]
+  id            Int               @id @default(autoincrement())
+  nome          String            @db.VarChar(255)
+  email         String            @unique @db.VarChar(255)
+  documento     String            @db.VarChar(20)
+  senha         String            @db.VarChar(255)
+  dataNascimento DateTime?        @map("data_nascimento") @db.Date
+  fotoPath      String?           @map("foto_path") @db.VarChar(255)
+  documentoPath String?           @map("documento_path") @db.VarChar(255) // privado: só o dono
+  // Dados de contato privados (nunca expostos a terceiros)
+  telefone      String?           @db.VarChar(20)
+  enderecoLogradouro String?      @map("endereco_logradouro") @db.VarChar(255)
+  enderecoNumero String?          @map("endereco_numero") @db.VarChar(20)
+  enderecoBairro String?          @map("endereco_bairro") @db.VarChar(100)
+  enderecoCidade String?          @map("endereco_cidade") @db.VarChar(100)
+  enderecoEstado String?          @map("endereco_estado") @db.VarChar(2)
+  enderecoCep   String?           @map("endereco_cep") @db.VarChar(10)
+  dataCadastro  DateTime          @default(now()) @map("data_cadastro")
+  softDelete    Boolean           @default(false) @map("soft_delete")
+  conexoes      ClienteAdvogado[]
+  processos     Processo[]
 
   @@map("cliente")
 }
@@ -42,11 +53,18 @@ model Advogado {
   dataCadastro   DateTime          @default(now()) @map("data_cadastro")
   planoId        Int               @map("plano_id")
   assinatura     AssinaturaStatus  @default(ativo)
+  nota           Decimal?          @db.Decimal(2, 1) // reputação seedada (0.0-5.0), read-only nesta rodada
+  estadoAtuacao  String?           @map("estado_atuacao") @db.VarChar(2)
+  cidadeAtuacao  String?           @map("cidade_atuacao") @db.VarChar(100)
+  telefone       String?           @db.VarChar(20)
+  whatsapp       String?           @db.VarChar(20)
+  fotoPath       String?           @map("foto_path") @db.VarChar(255)
   softDelete     Boolean           @default(false) @map("soft_delete")
   plano          Plano             @relation(fields: [planoId], references: [id])
   conexoes       ClienteAdvogado[]
   propostas      Proposta[]
   areas          AdvogadoArea[]
+  relatorios     RelatorioCaso[]
 
   @@map("adv")
 }
@@ -96,13 +114,31 @@ model Processo {
   descricao      String         @db.Text
   especializacao String         @db.VarChar(100)
   status         ProcessoStatus @default(aberto)
+  estado         String?        @db.VarChar(2) // herdado do cliente ao publicar, ajustável (filtro de região)
+  cidade         String?        @db.VarChar(100)
   dataCriacao    DateTime       @default(now()) @map("data_criacao")
   softDelete     Boolean        @default(false) @map("soft_delete")
   cliente        Cliente        @relation(fields: [clienteId], references: [id])
   propostas      Proposta[]
+  relatorios     RelatorioCaso[]
 
   @@index([especializacao, status, softDelete])
   @@map("processo")
+}
+
+// Histórico de relatórios de situação registrados pelo advogado durante o atendimento.
+model RelatorioCaso {
+  id          Int      @id @default(autoincrement())
+  processoId  Int      @map("id_processo")
+  advogadoId  Int      @map("id_advogado")
+  texto       String   @db.Text
+  dataCriacao DateTime @default(now()) @map("data_criacao")
+  softDelete  Boolean  @default(false) @map("soft_delete")
+  processo    Processo @relation(fields: [processoId], references: [id])
+  advogado    Advogado @relation(fields: [advogadoId], references: [id])
+
+  @@index([processoId, softDelete])
+  @@map("relatorio_caso")
 }
 
 model Proposta {

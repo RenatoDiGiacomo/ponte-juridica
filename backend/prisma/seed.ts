@@ -17,20 +17,27 @@ async function main() {
   const senhaDemo = await bcrypt.hash('senha123', 10);
 
   const advogados = [
-    { nome: 'Dra. Maria Ferreira', email: 'maria.demo@pontejuridica.com', oab: '00001/SP', especializacao: 'Trabalhista', planoId: 2 },
-    { nome: 'Dr. Carlos Mendes', email: 'carlos@pontejuridica.com', oab: '00002/SP', especializacao: 'Criminal', planoId: 3 },
-    { nome: 'Dra. Ana Paula Lima', email: 'ana@pontejuridica.com', oab: '00003/RJ', especializacao: 'Família', planoId: 2 },
-    { nome: 'Dr. Roberto Alves', email: 'roberto@pontejuridica.com', oab: '00004/MG', especializacao: 'Tributário', planoId: 3 },
-    { nome: 'Dra. Juliana Costa', email: 'juliana@pontejuridica.com', oab: '00005/SP', especializacao: 'Cível', planoId: 1 },
-    { nome: 'Dr. Felipe Santos', email: 'felipe@pontejuridica.com', oab: '00006/RS', especializacao: 'Previdenciário', planoId: 2 },
-    { nome: 'Dra. Luciana Prado', email: 'luciana@pontejuridica.com', oab: '00007/SP', especializacao: 'Trabalhista', planoId: 3 },
-    { nome: 'Dr. Marcos Oliveira', email: 'marcos@pontejuridica.com', oab: '00008/BA', especializacao: 'Criminal', planoId: 1 },
+    { nome: 'Dra. Maria Ferreira', email: 'maria.demo@pontejuridica.com', oab: '00001/SP', especializacao: 'Trabalhista', planoId: 2, nota: 4.8, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0001', whatsapp: '(11) 99000-0001' },
+    { nome: 'Dr. Carlos Mendes', email: 'carlos@pontejuridica.com', oab: '00002/SP', especializacao: 'Criminal', planoId: 3, nota: 4.5, estadoAtuacao: 'SP', cidadeAtuacao: 'Campinas', telefone: '(19) 3000-0002', whatsapp: '(19) 99000-0002' },
+    { nome: 'Dra. Ana Paula Lima', email: 'ana@pontejuridica.com', oab: '00003/RJ', especializacao: 'Família', planoId: 2, nota: 4.9, estadoAtuacao: 'RJ', cidadeAtuacao: 'Rio de Janeiro', telefone: '(21) 3000-0003', whatsapp: '(21) 99000-0003' },
+    { nome: 'Dr. Roberto Alves', email: 'roberto@pontejuridica.com', oab: '00004/MG', especializacao: 'Tributário', planoId: 3, nota: 4.2, estadoAtuacao: 'MG', cidadeAtuacao: 'Belo Horizonte', telefone: '(31) 3000-0004', whatsapp: '(31) 99000-0004' },
+    { nome: 'Dra. Juliana Costa', email: 'juliana@pontejuridica.com', oab: '00005/SP', especializacao: 'Cível', planoId: 1, nota: 3.9, estadoAtuacao: 'SP', cidadeAtuacao: 'Santos', telefone: '(13) 3000-0005', whatsapp: '(13) 99000-0005' },
+    { nome: 'Dr. Felipe Santos', email: 'felipe@pontejuridica.com', oab: '00006/RS', especializacao: 'Previdenciário', planoId: 2, nota: 4.8, estadoAtuacao: 'RS', cidadeAtuacao: 'Porto Alegre', telefone: '(51) 3000-0006', whatsapp: '(51) 99000-0006' },
+    { nome: 'Dra. Luciana Prado', email: 'luciana@pontejuridica.com', oab: '00007/SP', especializacao: 'Trabalhista', planoId: 3, nota: 4.6, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0007', whatsapp: '(11) 99000-0007' },
+    { nome: 'Dr. Marcos Oliveira', email: 'marcos@pontejuridica.com', oab: '00008/BA', especializacao: 'Criminal', planoId: 1, nota: 4.1, estadoAtuacao: 'BA', cidadeAtuacao: 'Salvador', telefone: '(71) 3000-0008', whatsapp: '(71) 99000-0008' },
   ];
 
   for (const adv of advogados) {
     await prisma.advogado.upsert({
       where: { email: adv.email },
-      update: {},
+      // atualiza os campos ricos também em advogados já seedados (idempotente)
+      update: {
+        nota: adv.nota,
+        estadoAtuacao: adv.estadoAtuacao,
+        cidadeAtuacao: adv.cidadeAtuacao,
+        telefone: adv.telefone,
+        whatsapp: adv.whatsapp,
+      },
       create: { ...adv, senha: senhaDemo },
     });
   }
@@ -52,6 +59,24 @@ async function main() {
   for (const adv of advsSeed) {
     const areaId = areaPorNome.get(adv.especializacao);
     if (!areaId) continue;
+    await prisma.advogadoArea.upsert({
+      where: { advogadoId_areaId: { advogadoId: adv.id, areaId } },
+      update: {},
+      create: { advogadoId: adv.id, areaId },
+    });
+    vinculos++;
+  }
+
+  // Alguns advogados atuam em mais de uma área (demonstra o N:N e os filtros multi-área).
+  const segundaArea: Record<string, string> = {
+    'maria.demo@pontejuridica.com': 'Previdenciário', // Trabalhista + Previdenciário
+    'felipe@pontejuridica.com': 'Trabalhista',        // Previdenciário + Trabalhista
+    'carlos@pontejuridica.com': 'Cível',              // Criminal + Cível
+  };
+  for (const [email, nomeArea] of Object.entries(segundaArea)) {
+    const adv = advsSeed.find((a) => a.email === email);
+    const areaId = areaPorNome.get(nomeArea);
+    if (!adv || !areaId) continue;
     await prisma.advogadoArea.upsert({
       where: { advogadoId_areaId: { advogadoId: adv.id, areaId } },
       update: {},
@@ -88,6 +113,8 @@ async function main() {
       descricao:
         'Trabalho há 3 anos numa empresa de logística que está atrasando salários há 4 meses consecutivos. Tenho holerites e prints das mensagens do RH. Quero saber se cabe rescisão indireta com pedido de tutela de urgência.',
       especializacao: 'Trabalhista',
+      estado: 'SP',
+      cidade: 'São Paulo',
     },
     {
       cliente: clientes[1],
@@ -95,6 +122,8 @@ async function main() {
       descricao:
         'Casamento de 8 anos, sem filhos, com um imóvel financiado em conjunto e um carro. Já temos acordo verbal sobre a divisão. Procuro orientação para formalizar o divórcio consensual.',
       especializacao: 'Família',
+      estado: 'RJ',
+      cidade: 'Rio de Janeiro',
     },
     {
       cliente: clientes[2],
@@ -102,6 +131,8 @@ async function main() {
       descricao:
         'Familiar foi indiciado em inquérito por furto qualificado. Preciso de defesa técnica para a fase de instrução. Audiência marcada para o próximo mês.',
       especializacao: 'Criminal',
+      estado: 'BA',
+      cidade: 'Salvador',
     },
     {
       cliente: clientes[0],
@@ -109,6 +140,8 @@ async function main() {
       descricao:
         'Aposentei em 2019 mas acredito que houve erro no cálculo do INSS. Tenho CNIS completo e carta de concessão. Quero analisar se cabe revisão.',
       especializacao: 'Previdenciário',
+      estado: 'RS',
+      cidade: 'Porto Alegre',
     },
     {
       cliente: clientes[1],
@@ -116,6 +149,8 @@ async function main() {
       descricao:
         'Banco vem cobrando tarifa de pacote de serviços que cancelei há mais de um ano. Já tentei resolver pelo SAC sem sucesso. Pretendo ação de repetição de indébito + danos morais.',
       especializacao: 'Cível',
+      estado: 'SP',
+      cidade: 'Santos',
     },
   ];
 
@@ -123,7 +158,16 @@ async function main() {
     const existente = await prisma.processo.findFirst({
       where: { titulo: p.titulo, clienteId: p.cliente.id },
     });
-    if (existente) continue;
+    if (existente) {
+      // backfill da região em processos já seedados (idempotente)
+      if (!existente.estado) {
+        await prisma.processo.update({
+          where: { id: existente.id },
+          data: { estado: p.estado, cidade: p.cidade },
+        });
+      }
+      continue;
+    }
 
     const processo = await prisma.processo.create({
       data: {
@@ -131,6 +175,8 @@ async function main() {
         titulo: p.titulo,
         descricao: p.descricao,
         especializacao: p.especializacao,
+        estado: p.estado,
+        cidade: p.cidade,
       },
     });
 
