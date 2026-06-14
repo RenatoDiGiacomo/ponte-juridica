@@ -5,6 +5,49 @@
   --color-primary-light: #2d5a8e;
   --color-secondary: #c9a84c;
   --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* Status do caso (cor + ícone + texto sempre juntos — não depender só de cor) */
+  --color-status-aberto: #2563eb;
+  --color-status-atendimento: #059669;
+  --color-status-encerrado: #64748b;
+  /* Feedback */
+  --color-erro: #dc2626;
+  --color-aviso: #d97706;
+  --color-sucesso: #059669;
+}
+
+/* Modal sobre <dialog> nativo: foco preso/Esc/backdrop nativos + transição suave (@starting-style) */
+dialog.modal-dialog {
+  opacity: 0;
+  transform: scale(0.97);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    overlay 150ms ease allow-discrete,
+    display 150ms ease allow-discrete;
+}
+dialog.modal-dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+}
+@starting-style {
+  dialog.modal-dialog[open] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+dialog.modal-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.5);
+  opacity: 0;
+  transition: opacity 150ms ease, overlay 150ms ease allow-discrete, display 150ms ease allow-discrete;
+}
+dialog.modal-dialog[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  dialog.modal-dialog[open]::backdrop {
+    opacity: 0;
+  }
 }
 
 *, *::before, *::after { box-sizing: border-box; }
