@@ -1,6 +1,8 @@
 ---
-stepsCompleted: [1, 2, 3, 4]
-pausedAt: 'step-05-patterns (próximo); decisões core concluídas'
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
+lastStep: 8
+status: 'complete'
+completedAt: '2026-06-14'
 inputDocuments:
   - 'docs/bmad/prd.md'
   - 'docs/bmad/ux-design-specification.md'
@@ -104,6 +106,23 @@ model AdvogadoArea {               // join N:N
 Campos novos:
 - **Advogado:** `nota Decimal? @db.Decimal(2,1)` (seedada, ex.: 4.8), `estadoAtuacao`, `cidadeAtuacao`, `telefone`, `whatsapp`, `fotoPath`. Mantém `especializacao` (legado) até a contração.
 - **Cliente:** `fotoPath`, `dataNascimento` (idade derivada — não armazenar idade), `enderecoLogradouro/…`, `telefone`, `documentoPath` (privado).
+- **Processo:** `estado`, `cidade` — **herdados do cliente ao publicar, com opção de ajustar** (resolve filtro de região das oportunidades, FR20). `relatorioAtual` removido em favor da tabela abaixo.
+
+Novo model para relatório de situação (FR24/A1) — **histórico, não campo único**:
+```
+model RelatorioCaso {
+  id         Int      @id @default(autoincrement())
+  processoId Int      @map("id_processo")
+  advogadoId Int      @map("id_advogado")   // quem registrou
+  texto      String   @db.Text
+  dataCriacao DateTime @default(now()) @map("data_criacao")
+  softDelete Boolean  @default(false) @map("soft_delete")
+  processo   Processo @relation(...)
+  advogado   Advogado @relation(...)
+  @@map("relatorio_caso")
+}
+```
+O advogado registra entradas de relatório ao longo do atendimento; o detalhe do caso mostra o histórico (mais recente no topo).
 
 **Migração faseada (expand-contract):** (1) add Area/AdvogadoArea/campos; (2) seed das 6 áreas + script que mapeia `especializacao` → AdvogadoArea; (3) migration separada remove `especializacao` após o código migrar.
 
@@ -156,3 +175,156 @@ Allowlist por construção: campo sensível só existe no DTO da audiência cert
 ### Decision Impact Analysis
 **Sequência de implementação:** D1 (schema/migração) → D3/D6 (privacidade+storage) → D5 (paginação) → D7/D8/D9 (regras) → front. Alinha com as Ondas 0→3 do PRD.
 **Dependências:** filtros (D5) dependem do N:N (D1); contatos (D3) dependem de vínculo; cota (D8) e plano (D9) acoplados.
+
+## Implementation Patterns & Consistency Rules
+
+### Pattern Categories Defined
+Padrões derivados do código existente (brownfield) — agentes de dev DEVEM seguir o que já está no repositório, não introduzir estilos novos.
+
+### Naming Patterns
+
+**Database (Prisma):**
+- Campos do model em **camelCase**; mapeados para coluna **snake_case** via `@map` (ex.: `valorEstimado @map("valor_estimado")`).
+- Tabela via `@@map` em **snake_case** (atenção a nomes legados: Advogado → `adv`, vínculo → `cliente_advogado`).
+- Novos: model `Area` → `@@map("area")`; join `AdvogadoArea` → `@@map("advogado_area")`, PK composta `@@id([advogadoId, areaId])`.
+- **Soft delete:** entidades de domínio (Cliente, Advogado, Processo, Proposta) mantêm `softDelete Boolean @default(false)` como hoje. **`Area` e `AdvogadoArea` NÃO usam softDelete — hard delete.** Soft delete em join N:N é anti-padrão (acumula lixo e quebra a PK composta ao readicionar a mesma área); lista controlada não se deleta.
+
+**API:**
+- Prefixo **`/api/v1`** (já no `@Controller('api/v1')`). Recursos no **plural** (`processos`, `advogados`).
+- Param de rota `:id` com **`ParseIntPipe`**. Query params em camelCase.
+- Todo endpoint anotado com **Swagger** (`@ApiTags`, `@ApiOperation`, `@ApiBearerAuth`, `@ApiQuery`).
+
+**Código (PT-BR no domínio):**
+- Métodos/variáveis em **português** seguindo o existente (`criar`, `meusProcessos`, `contarPropostasPendentes`).
+- DTOs: `VerboSubstantivoDto` (`CriarProcessoDto`); arquivo kebab-case (`criar-processo.dto.ts`).
+- Services `XxxService` (PascalCase); injetados com nome curto (`private processos`).
+- Componentes React PascalCase (`MeusCasosPage.tsx`); páginas em `pages/<papel>/`; serviços em `services/`.
+
+### Format Patterns
+
+**Respostas de API:**
+- **Recurso único / objeto:** retorno direto (sem wrapper), como já é hoje.
+- **Listagem paginada (NOVO):** envelope único `{ data: T[], total, page, pageSize }` — para casos, oportunidades, advogados, clientes. Não envelopar o que não é lista.
+- **Contadores/ações pontuais:** objeto direto pequeno (`{ total }`), padrão já existente.
+- **Datas:** ISO 8601 string. JSON sempre **camelCase**.
+
+**Privacidade (regra dura):**
+- **NUNCA** retornar entidade Prisma crua de Cliente/Advogado. Sempre via DTO/mapper de resposta por audiência (`AdvogadoPublicoDTO` / `AdvogadoContatoDTO` / `ClientePerfilDTO`). Campo sensível só existe no DTO da audiência certa.
+
+**Query (regra dura):**
+- Toda query de listagem **começa** filtrando `softDelete: false` da entidade-alvo, **antes** dos filtros de negócio — inclusive quando faz JOIN em `advogado_area`. Ex.: "advogados da área X" = `Advogado where { softDelete:false, areas: { some: { areaId } } }`.
+
+### Process Patterns
+
+**Autorização:**
+- Guard `JwtAuthGuard` + decorator `@UsuarioAtual()` (tipo `Usuario = { id, tipo: 'cliente'|'advogado' }`).
+- Checagem de papel via helpers `exigirCliente(u)` / `exigirAdvogado(u)` → `ForbiddenException`.
+- Checagem de propriedade (dono do recurso, vínculo) no service → `ForbiddenException`/`NotFoundException`.
+
+**Erros:**
+- Exceções nativas do Nest (`ForbiddenException`, `BadRequestException`, `NotFoundException`) com **mensagem em PT-BR**. Front nunca usa `alert()`/`confirm()` (NFR14).
+
+**Validação:**
+- DTOs de entrada com class-validator + mensagens PT-BR + `@ApiProperty`. ValidationPipe global já filtra (whitelist).
+- Upload validado no interceptor (tipo/tamanho), erro → `BadRequestException` PT-BR.
+
+**Transações:**
+- Operações multi-passo (aceitar proposta → mudar status + recusar demais conforme flag configurável) usam `prisma.$transaction`. Regras de transição de status centralizadas no service do processo.
+
+### Frontend Patterns
+- Camada `services/` por domínio (ex.: `processosService.meus()`); refetch após mutação.
+- Estado de loading/erro local por tela; skeleton no master-detail (não spinner central).
+- Hook compartilhado `usePaginatedQuery` consumindo o envelope `{data,total,page,pageSize}`.
+
+### Enforcement Guidelines
+**Todo agente de dev DEVE:** seguir PT-BR no domínio; usar `/api/v1` + plural + Swagger; paginar com o envelope único; nunca retornar entidade crua de Cliente/Advogado (privacidade via DTO); usar os helpers de papel/propriedade existentes; manter `softDelete` nas entidades de domínio mas **não** nos joins/lookup; toda listagem começa com `softDelete:false` da entidade-alvo.
+**Anti-padrões:** inglês no domínio; retorno cru de entidade com dado privado; filtro/paginação em memória; `alert/confirm`; soft delete em join N:N; envelope inconsistente entre endpoints de lista.
+
+## Project Structure & Boundaries
+
+### Estrutura atual (mantida) + adições deste lote
+```
+backend/
+├── prisma/
+│   ├── schema.prisma          # + models Area, AdvogadoArea; + campos Advogado/Cliente
+│   ├── migrations/            # + migrations expand-contract (3 passos)
+│   └── seed.ts                # + seed das 6 áreas; mapear especializacao->AdvogadoArea
+├── src/
+│   ├── main.ts                # + ServeStaticModule p/ /uploads/fotos
+│   ├── app.module.ts
+│   ├── common/
+│   │   ├── decorators/        # @UsuarioAtual (existe)
+│   │   ├── guards/            # JwtAuthGuard (existe)
+│   │   ├── dto/               # + PaginationQueryDto, PaginatedDTO<T> (NOVO, compartilhado)
+│   │   └── upload/            # + util de upload (fileFilter jpg/png/pdf + 5MB) (NOVO)
+│   ├── advogados/             # + areas, perfil rico, filtros, DTOs por audiencia, troca de plano
+│   ├── clientes/              # + perfil rico, privacidade, contatos de vinculados
+│   ├── conexoes/              # (vinculo — base do escopo de contatos)
+│   ├── processos/             # + filtros/paginacao, maquina de estados, encerrar
+│   ├── planos/                # (cota calculada usa plano)
+│   ├── areas/                 # + NOVO modulo: listar areas (lookup)
+│   ├── midia/                 # + NOVO modulo: upload + servir documento privado
+│   ├── auth/
+│   └── prisma/
+└── uploads/                   # + NOVO: fotos/ (publico) e documentos/ (privado)
+
+web/src/
+├── components/                # + Modal, FormField, FilterBar/Chips, Pagination,
+│                              #   StatusBadge, RatingStars, ProposalCard, EmptyState,
+│                              #   Avatar, FileUpload, Toast, Skeleton (ver UX)
+├── hooks/                     # + usePaginatedQuery, useDebounce
+├── contexts/                  # (auth existente)
+├── pages/
+│   ├── cliente/               # MeusCasos (master-detail C2), BuscarAdvogados (C4),
+│   │                          #   MinhasConexoes (C5), PerfilCliente (C6)
+│   ├── advogado/              # Oportunidades (A3/A4), MeusClientes (A5),
+│   │                          #   PerfilAdvogado (A6), + NOVA: MeusCasosAdvogado (A1)
+│   └── auth/
+└── services/                  # + metodos de filtro/paginacao por dominio
+```
+
+### Architectural Boundaries
+- **API boundary:** todos os endpoints sob `/api/v1`, autenticados por `JwtAuthGuard`; estáticos de foto em `/uploads/fotos`; documento privado só via `GET /api/v1/midia/documento` autenticado.
+- **Module boundary:** cada domínio é um módulo Nest isolado (controller + service + dto/). `midia` e `areas` são novos módulos próprios (responsabilidade clara); `common/` concentra o transversal (paginação, upload, guards, decorators).
+- **Data boundary:** acesso só via PrismaService; nenhuma query crua fora dos services; DTO de resposta sempre na fronteira do controller (privacidade).
+- **Frontend boundary:** páginas consomem `services/` (nunca axios direto na página); componentes "burros" recebem props; estado local por tela.
+
+### Requirements → Structure Mapping (por Onda)
+- **Onda 0 (fundação):** `prisma/` (schema+migrations+seed), `common/dto` (paginação), `common/upload`, `midia/`, `areas/`, componentes `Modal`/`FormField`/`FileUpload`, hooks.
+- **Onda 1 (núcleo C2/A1/C3/A6):** `processos/` (estados), `pages/cliente/MeusCasos` (master-detail), `pages/advogado/MeusCasosAdvogado` (nova), `advogados/` (perfil+áreas), componentes do card/badge/toast/skeleton.
+- **Onda 2 (filtros):** filtros/paginação em `advogados`, `processos`, `clientes`; `FilterBar`/`Pagination` no front.
+- **Onda 3 (perfis/contatos/cota):** `clientes` (C6), `conexoes`/`advogados` (contatos C5), `planos`/`advogados` (cota A2 + troca plano), `PrivacyField`.
+
+### Data Flow
+Página React → `services/` (axios, JWT no header) → `/api/v1/...` (controller, guard, DTO entrada) → service (regras + Prisma, filtro `softDelete:false`) → DTO de resposta por audiência → JSON camelCase → hook `usePaginatedQuery` → componente.
+
+## Architecture Validation Results
+
+### Coherence Validation ✅
+- **Compatibilidade:** todas as decisões usam a stack existente (NestJS/Prisma/MySQL + React/Vite/Tailwind), sem conflito de versão. Prisma fixado em ^5.
+- **Consistência de padrões:** padrões de naming/API/privacidade derivam do código atual; envelope de paginação e DTOs por audiência são adições coerentes, não rupturas.
+- **Alinhamento estrutural:** módulos novos (`areas`, `midia`) seguem o padrão de módulo Nest isolado; `common/` concentra o transversal.
+
+### Requirements Coverage Validation ✅
+- **35 FRs cobertos.** Mapeamento: áreas/perfil (FR1-6)→D1; privacidade (FR7,12,30,33)→D3/D6; filtros (FR8-11,13-15,18-25)→D5+D1; master-detail/modais (FR16,29,32)→front; estados (FR17,26-27)→D7; cota/plano (FR28,31)→D8/D9; seed (FR35)→seed.
+- **14 NFRs endereçados:** privacidade (NFR1-4)→D3/D4; upload (NFR5)→D6; paginação/performance (NFR6-8)→D5; a11y/compat (NFR9-11)→front/UX; qualidade de entrega (NFR12-14)→processo de dev.
+
+### Gaps encontrados e resolvidos
+- **Gap 1 — Filtro de região das oportunidades (FR20):** o `Processo` não tinha localização. **Resolvido:** add `estado`/`cidade` ao Processo, **herdados do cliente ao publicar com opção de ajustar**.
+- **Gap 2 — Relatório de situação (FR24/A1):** não havia onde armazenar. **Resolvido:** novo model `RelatorioCaso` (**histórico**, não campo único) — advogado registra entradas ao longo do atendimento.
+
+### Architecture Completeness Checklist
+- [x] Contexto, escala e restrições analisados (incl. risco N:N expand-contract)
+- [x] Decisões core documentadas (D1-D10)
+- [x] Padrões de implementação ancorados no código existente
+- [x] Estrutura de projeto mapeada (adições por onda)
+- [x] Cobertura de FRs/NFRs verificada; 2 gaps fechados
+
+### Architecture Readiness Assessment
+**Status:** READY FOR IMPLEMENTATION. **Confiança: alta.**
+- **Forças:** brownfield com convenções claras; fundação (N:N) isolável como walking skeleton; privacidade verificável; faseamento por dependência.
+- **Para o futuro (fora desta rodada):** cripto em repouso de documentos, avaliações reais (substituir nota seedada), cache.
+
+### Implementation Handoff
+- Primeira prioridade: **Onda 0** — migração expand-contract do schema (Area/AdvogadoArea + campos + Processo.estado/cidade + RelatorioCaso) e seed das 6 áreas mapeando `especializacao`.
+- Agentes de dev seguem este documento + os padrões do passo 5 à risca.
