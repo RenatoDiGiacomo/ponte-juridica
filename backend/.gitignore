@@ -3,3 +3,10 @@ node_modules
 .env
 
 /generated/prisma
+
+# uploads enviados (manter as pastas via .gitkeep)
+uploads/**/*
+!uploads/**/.gitkeep
+
+# build
+dist
