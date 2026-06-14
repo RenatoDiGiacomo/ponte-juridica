@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { advogadosService, conexoesService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
+import { useToast } from '../../components/Toast';
 
 const NAV = [
   { label: 'Meus Casos', to: '/' },
@@ -37,6 +38,7 @@ export function BuscarAdvogadosPage() {
   const [loading, setLoading] = useState(true);
   const [conectando, setConectando] = useState<number | null>(null);
   const [conectados, setConectados] = useState<Set<number>>(new Set());
+  const { mostrar } = useToast();
 
   useEffect(() => {
     setLoading(true);
@@ -51,8 +53,9 @@ export function BuscarAdvogadosPage() {
     try {
       await conexoesService.conectar(id);
       setConectados(prev => new Set(prev).add(id));
+      mostrar('Solicitação enviada', 'sucesso');
     } catch (e: any) {
-      alert(e.response?.data?.message ?? 'Erro ao criar vínculo');
+      mostrar(e.response?.data?.message ?? 'Erro ao criar vínculo', 'erro');
     } finally {
       setConectando(null);
     }

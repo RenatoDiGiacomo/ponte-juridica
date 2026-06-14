@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { useToast } from '../../components/Toast';
 
 const NAV = [
   { label: 'Meus Casos', to: '/' },
@@ -42,6 +44,9 @@ type Processo = {
 export function MeusCasosPage() {
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [propostaConfirmar, setPropostaConfirmar] = useState<Proposta | null>(null);
+  const [aceitando, setAceitando] = useState(false);
+  const { mostrar } = useToast();
 
   const carregar = useCallback(async () => {
     try {
@@ -54,13 +59,18 @@ export function MeusCasosPage() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  async function aceitarProposta(p: Proposta) {
-    if (!window.confirm(`Aceitar a proposta de ${p.advogado.nome} por R$ ${Number(p.valorEstimado).toFixed(2)}?`)) return;
+  async function confirmarAceite() {
+    if (!propostaConfirmar) return;
+    setAceitando(true);
     try {
-      await processosService.aceitarProposta(p.id);
+      await processosService.aceitarProposta(propostaConfirmar.id);
+      setPropostaConfirmar(null);
+      mostrar('Proposta aceita', 'sucesso');
       carregar();
     } catch (e: any) {
-      alert(e.response?.data?.message ?? 'Falha ao aceitar');
+      mostrar(e.response?.data?.message ?? 'Falha ao aceitar', 'erro');
+    } finally {
+      setAceitando(false);
     }
   }
 
@@ -69,7 +79,7 @@ export function MeusCasosPage() {
       await processosService.recusarProposta(p.id);
       carregar();
     } catch (e: any) {
-      alert(e.response?.data?.message ?? 'Falha ao recusar');
+      mostrar(e.response?.data?.message ?? 'Falha ao recusar', 'erro');
     }
   }
 
@@ -162,7 +172,7 @@ export function MeusCasosPage() {
                               <div className="flex gap-2 mt-3">
                                 <button
                                   type="button"
-                                  onClick={() => aceitarProposta(pr)}
+                                  onClick={() => setPropostaConfirmar(pr)}
                                   className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors"
                                 >
                                   ✓ Aceitar
@@ -193,6 +203,20 @@ export function MeusCasosPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        aberto={propostaConfirmar !== null}
+        titulo="Aceitar proposta"
+        mensagem={
+          propostaConfirmar
+            ? `Aceitar a proposta de ${propostaConfirmar.advogado.nome} por R$ ${Number(propostaConfirmar.valorEstimado).toFixed(2)}? O caso passará para "Em atendimento".`
+            : ''
+        }
+        textoConfirmar="Aceitar"
+        carregando={aceitando}
+        onConfirmar={confirmarAceite}
+        onCancelar={() => setPropostaConfirmar(null)}
+      />
     </div>
   );
 }

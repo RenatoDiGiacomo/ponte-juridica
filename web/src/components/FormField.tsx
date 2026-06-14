@@ -31,7 +31,7 @@ export function FormField({ label, children, error, hint, privado }: FormFieldPr
       {children({ id, 'aria-invalid': !!error, 'aria-describedby': descId })}
 
       {error ? (
-        <p id={`${id}-err`} className="mt-1 text-xs text-[var(--color-erro)]">
+        <p id={`${id}-err`} className="mt-1 text-xs text-erro">
           {error}
         </p>
       ) : hint ? (

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { conexoesService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { useToast } from '../../components/Toast';
 
 const NAV = [
   { label: 'Meus Casos', to: '/' },
@@ -18,6 +20,8 @@ export function MinhasConexoesPage() {
   const [conexoes, setConexoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [removendo, setRemovendo] = useState<number | null>(null);
+  const [idConfirmar, setIdConfirmar] = useState<number | null>(null);
+  const { mostrar } = useToast();
 
   useEffect(() => {
     conexoesService.minhas()
@@ -25,14 +29,17 @@ export function MinhasConexoesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function remover(id: number) {
-    if (!window.confirm('Deseja remover este vínculo?')) return;
+  async function confirmarRemocao() {
+    if (idConfirmar === null) return;
+    const id = idConfirmar;
+    setIdConfirmar(null);
     setRemovendo(id);
     try {
       await conexoesService.remover(id);
       setConexoes((prev) => prev.filter((c) => c.id !== id));
+      mostrar('Vínculo removido', 'sucesso');
     } catch {
-      alert('Erro ao remover vínculo');
+      mostrar('Erro ao remover vínculo', 'erro');
     } finally {
       setRemovendo(null);
     }
@@ -115,7 +122,7 @@ export function MinhasConexoesPage() {
                       </a>
                       <button
                         type="button"
-                        onClick={() => remover(c.id)}
+                        onClick={() => setIdConfirmar(c.id)}
                         disabled={removendo === c.id}
                         className="px-3 py-2.5 rounded-xl bg-red-50 text-red-400 hover:bg-red-500 hover:text-white text-sm font-semibold transition-colors disabled:opacity-50"
                         title="Remover vínculo"
@@ -130,6 +137,16 @@ export function MinhasConexoesPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        aberto={idConfirmar !== null}
+        titulo="Remover vínculo"
+        mensagem="Deseja remover este advogado dos seus vinculados?"
+        textoConfirmar="Remover"
+        variante="reforcado"
+        onConfirmar={confirmarRemocao}
+        onCancelar={() => setIdConfirmar(null)}
+      />
     </div>
   );
 }

@@ -38,7 +38,7 @@ export function Modal({ aberto, onFechar, titulo, children, variante = 'padrao' 
       <div className="p-6">
         <h2
           id="modal-titulo"
-          className={`text-lg font-bold ${variante === 'reforcado' ? 'text-[var(--color-erro)]' : 'text-slate-800'}`}
+          className={`text-lg font-bold ${variante === 'reforcado' ? 'text-erro' : 'text-slate-800'}`}
         >
           {titulo}
         </h2>

@@ -47,6 +47,7 @@ export function FileUpload({
         ref={inputRef}
         type="file"
         accept={tiposPermitidos.join(',')}
+        aria-label={label}
         className="hidden"
         onChange={(e) => aoSelecionar(e.target.files?.[0])}
       />
@@ -59,7 +60,7 @@ export function FileUpload({
       </button>
       {nomeArquivo && <span className="ml-3 text-xs text-slate-500">{nomeArquivo}</span>}
       {erro && (
-        <p role="alert" className="mt-1 text-xs text-[var(--color-erro)]">
+        <p role="alert" className="mt-1 text-xs text-erro">
           {erro}
         </p>
       )}
