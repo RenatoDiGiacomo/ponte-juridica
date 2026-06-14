@@ -46,8 +46,29 @@ model Advogado {
   plano          Plano             @relation(fields: [planoId], references: [id])
   conexoes       ClienteAdvogado[]
   propostas      Proposta[]
+  areas          AdvogadoArea[]
 
   @@map("adv")
+}
+
+// Lista controlada de áreas de atuação (seedada). Não usa softDelete — registros fixos.
+model Area {
+  id        Int            @id @default(autoincrement())
+  nome      String         @unique @db.VarChar(50)
+  advogados AdvogadoArea[]
+
+  @@map("area")
+}
+
+// Join N:N advogado <-> área. Hard delete (sem softDelete): remover área = apagar a linha.
+model AdvogadoArea {
+  advogadoId Int      @map("id_advogado")
+  areaId     Int      @map("id_area")
+  advogado   Advogado @relation(fields: [advogadoId], references: [id])
+  area       Area     @relation(fields: [areaId], references: [id])
+
+  @@id([advogadoId, areaId])
+  @@map("advogado_area")
 }
 
 model ClienteAdvogado {

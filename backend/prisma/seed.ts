@@ -36,6 +36,31 @@ async function main() {
   }
   console.log(`✓ ${advogados.length} advogados criados`);
 
+  // Áreas de atuação (lista controlada) + mapeamento especializacao -> AdvogadoArea (N:N)
+  const AREAS = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
+  const areas = await Promise.all(
+    AREAS.map((nome) =>
+      prisma.area.upsert({ where: { nome }, update: {}, create: { nome } }),
+    ),
+  );
+  const areaPorNome = new Map(areas.map((a) => [a.nome, a.id]));
+  console.log(`✓ ${areas.length} áreas criadas`);
+
+  // Vincula cada advogado à área correspondente à sua especializacao legada (idempotente).
+  const advsSeed = await prisma.advogado.findMany({ where: { softDelete: false } });
+  let vinculos = 0;
+  for (const adv of advsSeed) {
+    const areaId = areaPorNome.get(adv.especializacao);
+    if (!areaId) continue;
+    await prisma.advogadoArea.upsert({
+      where: { advogadoId_areaId: { advogadoId: adv.id, areaId } },
+      update: {},
+      create: { advogadoId: adv.id, areaId },
+    });
+    vinculos++;
+  }
+  console.log(`✓ ${vinculos} vínculos advogado-área criados`);
+
   const clientesDemo = [
     { nome: 'João Silva', email: 'cliente.demo@pontejuridica.com', documento: '000.000.000-00' },
     { nome: 'Mariana Souza', email: 'mariana@pontejuridica.com', documento: '111.111.111-11' },
