@@ -1,45 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  AdvogadoPublicoDTO,
+  AdvogadoContatoDTO,
+  SELECT_ADVOGADO_DTO,
+  toAdvogadoPublico,
+  toAdvogadoContato,
+} from './dto/advogado-response.dto';
 
 @Injectable()
 export class AdvogadosService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(especializacao?: string) {
-    return this.prisma.advogado.findMany({
+  /** Listagem pública — SEM dados de contato (privacidade). */
+  async findAll(especializacao?: string): Promise<AdvogadoPublicoDTO[]> {
+    const advs = await this.prisma.advogado.findMany({
       where: {
         softDelete: false,
         assinatura: 'ativo',
         ...(especializacao && { especializacao }),
       },
-      select: {
-        id: true, nome: true, email: true,
-        especializacao: true, oab: true, assinatura: true,
-        plano: { select: { id: true, nome: true } },
-      },
+      select: SELECT_ADVOGADO_DTO,
     });
+    return advs.map(toAdvogadoPublico);
   }
 
-  findOne(id: number) {
-    return this.prisma.advogado.findFirst({
+  /** Perfil público de um advogado — SEM dados de contato. */
+  async findOne(id: number): Promise<AdvogadoPublicoDTO | null> {
+    const adv = await this.prisma.advogado.findFirst({
       where: { id, softDelete: false },
-      include: { plano: true, conexoes: { where: { softDelete: false } } },
+      select: SELECT_ADVOGADO_DTO,
     });
+    return adv ? toAdvogadoPublico(adv) : null;
   }
 
-  findPerfil(id: number) {
-    return this.prisma.advogado.findFirst({
+  /** Perfil do PRÓPRIO advogado logado — inclui dados de contato (é o dono). */
+  async findPerfil(id: number): Promise<AdvogadoContatoDTO | null> {
+    const adv = await this.prisma.advogado.findFirst({
       where: { id, softDelete: false },
-      select: {
-        id: true, nome: true, email: true,
-        especializacao: true, oab: true, assinatura: true,
-        dataCadastro: true,
-        plano: true,
-        conexoes: {
-          where: { softDelete: false },
-          include: { cliente: { select: { id: true, nome: true, email: true } } },
-        },
-      },
+      select: SELECT_ADVOGADO_DTO,
     });
+    return adv ? toAdvogadoContato(adv) : null;
   }
 }
