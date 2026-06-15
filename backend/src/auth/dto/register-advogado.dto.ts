@@ -17,7 +17,7 @@ export class RegisterAdvogadoDto {
 
   @ApiProperty({ example: 'Trabalhista', enum: ['Criminal','Trabalhista','Família','Cível','Tributário','Previdenciário'] })
   @IsString()
-  especializacao: string;
+  area: string;
 
   @ApiProperty({ example: '12345/SP' })
   @IsString()

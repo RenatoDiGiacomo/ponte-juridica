@@ -17,7 +17,6 @@ export const authService = {
 };
 
 export const advogadosService = {
-  listar: (especializacao?: string) => api.get('/advogados', { params: especializacao ? { especializacao } : {} }),
   porId: (id: number) => api.get(`/advogados/${id}`),
   meuPerfil: () => api.get('/advogados/perfil'),
   pesquisar: (

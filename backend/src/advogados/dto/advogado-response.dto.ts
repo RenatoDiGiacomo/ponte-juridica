@@ -9,7 +9,6 @@ export interface AdvogadoPublicoDTO {
   nome: string;
   oab: string;
   areas: string[];
-  especializacao?: string; // TRANSITÓRIO (expand-contract): mantido até o front migrar para `areas`
   nota: number | null;
   estadoAtuacao: string | null;
   cidadeAtuacao: string | null;
@@ -36,7 +35,6 @@ type AdvogadoRaw = {
   id: number;
   nome: string;
   oab: string;
-  especializacao?: string;
   email?: string;
   telefone?: string | null;
   whatsapp?: string | null;
@@ -55,7 +53,6 @@ export function toAdvogadoPublico(a: AdvogadoRaw): AdvogadoPublicoDTO {
     nome: a.nome,
     oab: a.oab,
     areas: (a.areas ?? []).map((aa) => aa.area?.nome).filter((n): n is string => !!n),
-    ...(a.especializacao ? { especializacao: a.especializacao } : {}),
     nota: a.nota != null ? Number(a.nota) : null,
     estadoAtuacao: a.estadoAtuacao ?? null,
     cidadeAtuacao: a.cidadeAtuacao ?? null,
@@ -79,7 +76,6 @@ export const SELECT_ADVOGADO_DTO = {
   id: true,
   nome: true,
   oab: true,
-  especializacao: true,
   email: true,
   telefone: true,
   whatsapp: true,

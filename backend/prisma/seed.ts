@@ -17,17 +17,18 @@ async function main() {
   const senhaDemo = await bcrypt.hash('senha123', 10);
 
   const advogados = [
-    { nome: 'Dra. Maria Ferreira', email: 'maria.demo@pontejuridica.com', oab: '00001/SP', especializacao: 'Trabalhista', planoId: 2, nota: 4.8, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0001', whatsapp: '(11) 99000-0001' },
-    { nome: 'Dr. Carlos Mendes', email: 'carlos@pontejuridica.com', oab: '00002/SP', especializacao: 'Criminal', planoId: 3, nota: 4.5, estadoAtuacao: 'SP', cidadeAtuacao: 'Campinas', telefone: '(19) 3000-0002', whatsapp: '(19) 99000-0002' },
-    { nome: 'Dra. Ana Paula Lima', email: 'ana@pontejuridica.com', oab: '00003/RJ', especializacao: 'Família', planoId: 2, nota: 4.9, estadoAtuacao: 'RJ', cidadeAtuacao: 'Rio de Janeiro', telefone: '(21) 3000-0003', whatsapp: '(21) 99000-0003' },
-    { nome: 'Dr. Roberto Alves', email: 'roberto@pontejuridica.com', oab: '00004/MG', especializacao: 'Tributário', planoId: 3, nota: 4.2, estadoAtuacao: 'MG', cidadeAtuacao: 'Belo Horizonte', telefone: '(31) 3000-0004', whatsapp: '(31) 99000-0004' },
-    { nome: 'Dra. Juliana Costa', email: 'juliana@pontejuridica.com', oab: '00005/SP', especializacao: 'Cível', planoId: 1, nota: 3.9, estadoAtuacao: 'SP', cidadeAtuacao: 'Santos', telefone: '(13) 3000-0005', whatsapp: '(13) 99000-0005' },
-    { nome: 'Dr. Felipe Santos', email: 'felipe@pontejuridica.com', oab: '00006/RS', especializacao: 'Previdenciário', planoId: 2, nota: 4.8, estadoAtuacao: 'RS', cidadeAtuacao: 'Porto Alegre', telefone: '(51) 3000-0006', whatsapp: '(51) 99000-0006' },
-    { nome: 'Dra. Luciana Prado', email: 'luciana@pontejuridica.com', oab: '00007/SP', especializacao: 'Trabalhista', planoId: 3, nota: 4.6, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0007', whatsapp: '(11) 99000-0007' },
-    { nome: 'Dr. Marcos Oliveira', email: 'marcos@pontejuridica.com', oab: '00008/BA', especializacao: 'Criminal', planoId: 1, nota: 4.1, estadoAtuacao: 'BA', cidadeAtuacao: 'Salvador', telefone: '(71) 3000-0008', whatsapp: '(71) 99000-0008' },
+    { nome: 'Dra. Maria Ferreira', email: 'maria.demo@pontejuridica.com', oab: '00001/SP', area: 'Trabalhista', planoId: 2, nota: 4.8, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0001', whatsapp: '(11) 99000-0001' },
+    { nome: 'Dr. Carlos Mendes', email: 'carlos@pontejuridica.com', oab: '00002/SP', area: 'Criminal', planoId: 3, nota: 4.5, estadoAtuacao: 'SP', cidadeAtuacao: 'Campinas', telefone: '(19) 3000-0002', whatsapp: '(19) 99000-0002' },
+    { nome: 'Dra. Ana Paula Lima', email: 'ana@pontejuridica.com', oab: '00003/RJ', area: 'Família', planoId: 2, nota: 4.9, estadoAtuacao: 'RJ', cidadeAtuacao: 'Rio de Janeiro', telefone: '(21) 3000-0003', whatsapp: '(21) 99000-0003' },
+    { nome: 'Dr. Roberto Alves', email: 'roberto@pontejuridica.com', oab: '00004/MG', area: 'Tributário', planoId: 3, nota: 4.2, estadoAtuacao: 'MG', cidadeAtuacao: 'Belo Horizonte', telefone: '(31) 3000-0004', whatsapp: '(31) 99000-0004' },
+    { nome: 'Dra. Juliana Costa', email: 'juliana@pontejuridica.com', oab: '00005/SP', area: 'Cível', planoId: 1, nota: 3.9, estadoAtuacao: 'SP', cidadeAtuacao: 'Santos', telefone: '(13) 3000-0005', whatsapp: '(13) 99000-0005' },
+    { nome: 'Dr. Felipe Santos', email: 'felipe@pontejuridica.com', oab: '00006/RS', area: 'Previdenciário', planoId: 2, nota: 4.8, estadoAtuacao: 'RS', cidadeAtuacao: 'Porto Alegre', telefone: '(51) 3000-0006', whatsapp: '(51) 99000-0006' },
+    { nome: 'Dra. Luciana Prado', email: 'luciana@pontejuridica.com', oab: '00007/SP', area: 'Trabalhista', planoId: 3, nota: 4.6, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0007', whatsapp: '(11) 99000-0007' },
+    { nome: 'Dr. Marcos Oliveira', email: 'marcos@pontejuridica.com', oab: '00008/BA', area: 'Criminal', planoId: 1, nota: 4.1, estadoAtuacao: 'BA', cidadeAtuacao: 'Salvador', telefone: '(71) 3000-0008', whatsapp: '(71) 99000-0008' },
   ];
 
   for (const adv of advogados) {
+    const { area: _area, ...dadosAdv } = adv; // `area` é só p/ o mapeamento N:N, não é coluna
     await prisma.advogado.upsert({
       where: { email: adv.email },
       // atualiza os campos ricos também em advogados já seedados (idempotente)
@@ -38,7 +39,7 @@ async function main() {
         telefone: adv.telefone,
         whatsapp: adv.whatsapp,
       },
-      create: { ...adv, senha: senhaDemo },
+      create: { ...dadosAdv, senha: senhaDemo },
     });
   }
   console.log(`✓ ${advogados.length} advogados criados`);
@@ -53,18 +54,27 @@ async function main() {
   const areaPorNome = new Map(areas.map((a) => [a.nome, a.id]));
   console.log(`✓ ${areas.length} áreas criadas`);
 
-  // Vincula cada advogado à área correspondente à sua especializacao legada (idempotente).
-  const advsSeed = await prisma.advogado.findMany({ where: { softDelete: false } });
-  let vinculos = 0;
-  for (const adv of advsSeed) {
-    const areaId = areaPorNome.get(adv.especializacao);
-    if (!areaId) continue;
+  // Mapas de apoio: email -> id (DB) e email -> área (definida localmente no array acima).
+  const advsDb = await prisma.advogado.findMany({ where: { softDelete: false }, select: { id: true, email: true } });
+  const idPorEmail = new Map(advsDb.map((a) => [a.email, a.id]));
+  const areaPorEmail = new Map(advogados.map((a) => [a.email, a.area]));
+
+  async function vincularArea(email: string, nomeArea: string) {
+    const advId = idPorEmail.get(email);
+    const areaId = areaPorNome.get(nomeArea);
+    if (!advId || !areaId) return false;
     await prisma.advogadoArea.upsert({
-      where: { advogadoId_areaId: { advogadoId: adv.id, areaId } },
+      where: { advogadoId_areaId: { advogadoId: advId, areaId } },
       update: {},
-      create: { advogadoId: adv.id, areaId },
+      create: { advogadoId: advId, areaId },
     });
-    vinculos++;
+    return true;
+  }
+
+  // Área principal de cada advogado (idempotente).
+  let vinculos = 0;
+  for (const adv of advogados) {
+    if (await vincularArea(adv.email, adv.area)) vinculos++;
   }
 
   // Alguns advogados atuam em mais de uma área (demonstra o N:N e os filtros multi-área).
@@ -74,15 +84,7 @@ async function main() {
     'carlos@pontejuridica.com': 'Cível',              // Criminal + Cível
   };
   for (const [email, nomeArea] of Object.entries(segundaArea)) {
-    const adv = advsSeed.find((a) => a.email === email);
-    const areaId = areaPorNome.get(nomeArea);
-    if (!adv || !areaId) continue;
-    await prisma.advogadoArea.upsert({
-      where: { advogadoId_areaId: { advogadoId: adv.id, areaId } },
-      update: {},
-      create: { advogadoId: adv.id, areaId },
-    });
-    vinculos++;
+    if (await vincularArea(email, nomeArea)) vinculos++;
   }
   console.log(`✓ ${vinculos} vínculos advogado-área criados`);
 
@@ -103,8 +105,10 @@ async function main() {
   }
   console.log(`✓ ${clientes.length} clientes criados`);
 
-  const todosAdvogados = await prisma.advogado.findMany({ where: { softDelete: false } });
-  const porEspec = (esp: string) => todosAdvogados.find((a) => a.especializacao === esp)!;
+  const todosAdvogados = await prisma.advogado.findMany({
+    where: { softDelete: false },
+    select: { id: true, nome: true, email: true },
+  });
 
   const processosDemo = [
     {
@@ -180,8 +184,8 @@ async function main() {
       },
     });
 
-    // gera 1-2 propostas por processo (do(s) advogado(s) da especialização)
-    const candidatos = todosAdvogados.filter((a) => a.especializacao === p.especializacao);
+    // gera 1-2 propostas por processo (do(s) advogado(s) da área do caso)
+    const candidatos = todosAdvogados.filter((a) => areaPorEmail.get(a.email) === p.especializacao);
     for (const adv of candidatos.slice(0, 2)) {
       await prisma.proposta.create({
         data: {

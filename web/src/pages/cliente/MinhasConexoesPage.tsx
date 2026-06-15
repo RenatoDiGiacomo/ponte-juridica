@@ -11,11 +11,6 @@ const NAV = [
   { label: 'Minha Conta', to: '/perfil' },
 ];
 
-const ESP_ICONS: Record<string, string> = {
-  Criminal: '🔒', Trabalhista: '🏭', Família: '👨‍👩‍👧',
-  Cível: '📋', Tributário: '💰', Previdenciário: '🛡️',
-};
-
 export function MinhasConexoesPage() {
   const [conexoes, setConexoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +93,7 @@ export function MinhasConexoesPage() {
                     <div className="mt-3">
                       <h3 className="font-bold text-white text-base">{adv?.nome}</h3>
                       <p className="text-white/70 text-xs mt-0.5">
-                        {ESP_ICONS[adv?.especializacao] ?? '⚖️'} {adv?.especializacao}
+                        ⚖️ {adv?.areas?.join(', ') || '—'}
                       </p>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -56,7 +56,7 @@ export class AuthService {
     const a = await this.prisma.advogado.findFirst({
       where: { id: usuarioId, softDelete: false },
       select: {
-        id: true, nome: true, email: true, oab: true, especializacao: true,
+        id: true, nome: true, email: true, oab: true,
         dataCadastro: true, plano: { select: { id: true, nome: true } },
       },
     });
@@ -67,10 +67,17 @@ export class AuthService {
   async registrarAdvogado(dto: RegisterAdvogadoDto) {
     const existe = await this.prisma.advogado.findFirst({ where: { email: dto.email } });
     if (existe) throw new ConflictException('E-mail já cadastrado');
+    const area = await this.prisma.area.findUnique({ where: { nome: dto.area } });
+    if (!area) throw new BadRequestException('Área de atuação inválida');
     const senha = await bcrypt.hash(dto.senha, 10);
+    const { area: _area, ...resto } = dto;
     const advogado = await this.prisma.advogado.create({
-      data: { ...dto, senha },
-      select: { id: true, nome: true, email: true, oab: true, especializacao: true },
+      data: {
+        ...resto,
+        senha,
+        areas: { create: { area: { connect: { id: area.id } } } },
+      },
+      select: { id: true, nome: true, email: true, oab: true },
     });
     return advogado;
   }

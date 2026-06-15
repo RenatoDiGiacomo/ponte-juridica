@@ -43,7 +43,7 @@ export function RegistroPage() {
         await authService.registrarCliente({ nome, email, documento, senha });
         await loginCliente(email, senha);
       } else {
-        await authService.registrarAdvogado({ nome, email, oab, especializacao, planoId, senha });
+        await authService.registrarAdvogado({ nome, email, oab, area: especializacao, planoId, senha });
         await loginAdvogado(email, senha);
       }
       navigate('/');

@@ -48,7 +48,6 @@ model Advogado {
   nome           String            @db.VarChar(255)
   email          String            @unique @db.VarChar(255)
   senha          String            @db.VarChar(255)
-  especializacao String            @db.VarChar(100)
   oab            String            @unique @db.VarChar(20)
   dataCadastro   DateTime          @default(now()) @map("data_cadastro")
   planoId        Int               @map("plano_id")

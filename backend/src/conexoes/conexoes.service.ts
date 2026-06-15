@@ -17,7 +17,7 @@ export class ConexoesService {
     return this.prisma.clienteAdvogado.create({
       data: { clienteId, advogadoId },
       include: {
-        advogado: { select: { id: true, nome: true, especializacao: true } },
+        advogado: { select: { id: true, nome: true } },
       },
     });
   }

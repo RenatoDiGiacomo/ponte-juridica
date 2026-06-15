@@ -77,7 +77,7 @@ export class ProcessosService {
         propostas: {
           where: { softDelete: false },
           include: {
-            advogado: { select: { id: true, nome: true, especializacao: true, oab: true } },
+            advogado: { select: { id: true, nome: true, oab: true } },
           },
         },
       },
@@ -132,7 +132,7 @@ export class ProcessosService {
         propostas: {
           where: { softDelete: false },
           include: {
-            advogado: { select: { id: true, nome: true, especializacao: true, oab: true } },
+            advogado: { select: { id: true, nome: true, oab: true } },
           },
         },
       },

@@ -39,7 +39,7 @@ type Proposta = {
   mensagem: string;
   valorEstimado: string;
   status: 'pendente' | 'aceita' | 'recusada';
-  advogado: { id: number; nome: string; especializacao: string; oab: string };
+  advogado: { id: number; nome: string; oab: string };
 };
 
 type Processo = {
@@ -302,7 +302,7 @@ export function MeusCasosPage() {
                             <div>
                               <p className="font-bold text-slate-800">{pr.advogado.nome}</p>
                               <p className="text-xs text-slate-400">
-                                OAB {pr.advogado.oab} · {pr.advogado.especializacao}
+                                OAB {pr.advogado.oab}
                               </p>
                             </div>
                             <p className="shrink-0 text-lg font-bold text-secondary">

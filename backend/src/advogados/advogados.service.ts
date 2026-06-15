@@ -20,19 +20,6 @@ import { PaginatedDTO, paginated } from '../common/dto/pagination-query.dto';
 export class AdvogadosService {
   constructor(private prisma: PrismaService) {}
 
-  /** Listagem pública — SEM dados de contato (privacidade). */
-  async findAll(especializacao?: string): Promise<AdvogadoPublicoDTO[]> {
-    const advs = await this.prisma.advogado.findMany({
-      where: {
-        softDelete: false,
-        assinatura: 'ativo',
-        ...(especializacao && { especializacao }),
-      },
-      select: SELECT_ADVOGADO_DTO,
-    });
-    return advs.map(toAdvogadoPublico);
-  }
-
   /** Busca filtrada e paginada (área/nota/estado/vínculo). Vínculo usa o cliente logado. */
   async buscar(
     q: BuscarAdvogadosQueryDto,

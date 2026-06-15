@@ -26,13 +26,6 @@ import { BuscarAdvogadosQueryDto } from './dto/buscar-advogados-query.dto';
 export class AdvogadosController {
   constructor(private advogados: AdvogadosService) {}
 
-  @Get()
-  @ApiOperation({ summary: 'Listar advogados disponíveis (com filtro por especialização)' })
-  @ApiQuery({ name: 'especializacao', required: false })
-  findAll(@Query('especializacao') especializacao?: string) {
-    return this.advogados.findAll(especializacao);
-  }
-
   @Get('perfil')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
