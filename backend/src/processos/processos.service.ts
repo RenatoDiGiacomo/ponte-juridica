@@ -173,15 +173,21 @@ export class ProcessosService {
     if (proposta.processo.status !== 'aberto')
       throw new BadRequestException('Processo não está mais aberto');
 
+    // Auto-recusa das demais propostas ao aceitar: CONFIGURÁVEL (default ligado).
+    // Só desliga se AUTO_RECUSAR_PROPOSTAS_AO_ACEITAR === 'false'.
+    const autoRecusar = process.env.AUTO_RECUSAR_PROPOSTAS_AO_ACEITAR !== 'false';
+
     return this.prisma.$transaction(async (tx) => {
       const aceita = await tx.proposta.update({
         where: { id: propostaId },
         data: { status: 'aceita' },
       });
-      await tx.proposta.updateMany({
-        where: { processoId: proposta.processoId, id: { not: propostaId }, status: 'pendente' },
-        data: { status: 'recusada' },
-      });
+      if (autoRecusar) {
+        await tx.proposta.updateMany({
+          where: { processoId: proposta.processoId, id: { not: propostaId }, status: 'pendente' },
+          data: { status: 'recusada' },
+        });
+      }
       await tx.processo.update({
         where: { id: proposta.processoId },
         data: { status: 'em_atendimento' },
