@@ -18,8 +18,12 @@ export const authService = {
 
 export const advogadosService = {
   listar: (especializacao?: string) => api.get('/advogados', { params: especializacao ? { especializacao } : {} }),
-  buscar: (id: number) => api.get(`/advogados/${id}`),
+  porId: (id: number) => api.get(`/advogados/${id}`),
   meuPerfil: () => api.get('/advogados/perfil'),
+  pesquisar: (
+    params: { area?: string; notaMin?: number; estado?: string; vinculo?: string; page: number; pageSize: number },
+    signal?: AbortSignal,
+  ) => api.get('/advogados/buscar', { params, signal }),
   atualizarPerfil: (data: { nome?: string; oab?: string; estadoAtuacao?: string; cidadeAtuacao?: string }) =>
     api.patch('/advogados/perfil', data),
   adicionarArea: (areaId: number) => api.post('/advogados/perfil/areas', { areaId }),

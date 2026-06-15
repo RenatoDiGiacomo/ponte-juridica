@@ -13,6 +13,8 @@ import {
   toAdvogadoContato,
 } from './dto/advogado-response.dto';
 import { AtualizarPerfilAdvogadoDto } from './dto/atualizar-perfil-advogado.dto';
+import { BuscarAdvogadosQueryDto } from './dto/buscar-advogados-query.dto';
+import { PaginatedDTO, paginated } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class AdvogadosService {
@@ -29,6 +31,37 @@ export class AdvogadosService {
       select: SELECT_ADVOGADO_DTO,
     });
     return advs.map(toAdvogadoPublico);
+  }
+
+  /** Busca filtrada e paginada (área/nota/estado/vínculo). Vínculo usa o cliente logado. */
+  async buscar(
+    q: BuscarAdvogadosQueryDto,
+    clienteId?: number,
+  ): Promise<PaginatedDTO<AdvogadoPublicoDTO>> {
+    const where: Prisma.AdvogadoWhereInput = {
+      softDelete: false,
+      assinatura: 'ativo',
+      ...(q.area && { areas: { some: { area: { nome: q.area } } } }),
+      ...(q.estado && { estadoAtuacao: q.estado }),
+      ...(q.notaMin != null && { nota: { gte: q.notaMin } }),
+    };
+    if (clienteId && q.vinculo === 'vinculado') {
+      where.conexoes = { some: { clienteId, softDelete: false } };
+    } else if (clienteId && q.vinculo === 'nao') {
+      where.conexoes = { none: { clienteId, softDelete: false } };
+    }
+
+    const [total, advs] = await this.prisma.$transaction([
+      this.prisma.advogado.count({ where }),
+      this.prisma.advogado.findMany({
+        where,
+        select: SELECT_ADVOGADO_DTO,
+        orderBy: [{ nota: 'desc' }, { id: 'asc' }],
+        skip: q.skip,
+        take: q.take,
+      }),
+    ]);
+    return paginated(advs.map(toAdvogadoPublico), total, { page: q.page, pageSize: q.pageSize });
   }
 
   /** Perfil público de um advogado — SEM dados de contato. */

@@ -18,6 +18,7 @@ import {
   AtualizarPerfilAdvogadoDto,
   AdicionarAreaDto,
 } from './dto/atualizar-perfil-advogado.dto';
+import { BuscarAdvogadosQueryDto } from './dto/buscar-advogados-query.dto';
 
 @ApiTags('advogados')
 @Controller('api/v1/advogados')
@@ -61,6 +62,15 @@ export class AdvogadosController {
   @ApiOperation({ summary: 'Remover área de atuação do próprio perfil' })
   removerArea(@UsuarioAtual() u: { id: number }, @Param('areaId', ParseIntPipe) areaId: number) {
     return this.advogados.removerArea(u.id, areaId);
+  }
+
+  @Get('buscar')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Buscar advogados com filtros (área/nota/estado/vínculo) e paginação' })
+  buscar(@UsuarioAtual() u: { id: number; tipo: string }, @Query() q: BuscarAdvogadosQueryDto) {
+    const clienteId = u.tipo === 'cliente' ? u.id : undefined;
+    return this.advogados.buscar(q, clienteId);
   }
 
   @Get(':id')
