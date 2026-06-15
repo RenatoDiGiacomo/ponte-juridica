@@ -110,4 +110,10 @@ export class ProcessosController {
     exigirCliente(u);
     return this.processos.recusarProposta(id, u.id);
   }
+
+  @Patch('processos/:id/encerrar')
+  @ApiOperation({ summary: 'Encerrar caso (cliente dono OU advogado responsável)' })
+  encerrar(@UsuarioAtual() u: Usuario, @Param('id', ParseIntPipe) id: number) {
+    return this.processos.encerrarCaso(id, u);
+  }
 }

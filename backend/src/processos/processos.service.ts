@@ -224,4 +224,31 @@ export class ProcessosService {
       data: { status: 'recusada' },
     });
   }
+
+  /** Encerra um caso. Autorizado ao cliente dono OU ao advogado responsável (proposta aceita). */
+  async encerrarCaso(processoId: number, usuario: { id: number; tipo: 'cliente' | 'advogado' }) {
+    const processo = await this.prisma.processo.findFirst({
+      where: { id: processoId, softDelete: false },
+      include: {
+        propostas: { where: { status: 'aceita', softDelete: false }, select: { advogadoId: true } },
+      },
+    });
+    if (!processo) throw new NotFoundException('Caso não encontrado');
+    if (processo.status === 'encerrado')
+      throw new BadRequestException('Caso já está encerrado');
+
+    if (usuario.tipo === 'cliente') {
+      if (processo.clienteId !== usuario.id)
+        throw new ForbiddenException('Você não pode encerrar este caso');
+    } else {
+      const responsavel = processo.propostas.some((p) => p.advogadoId === usuario.id);
+      if (!responsavel)
+        throw new ForbiddenException('Você não é o advogado responsável por este caso');
+    }
+
+    return this.prisma.processo.update({
+      where: { id: processoId },
+      data: { status: 'encerrado' },
+    });
+  }
 }

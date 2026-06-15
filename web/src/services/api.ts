@@ -42,6 +42,7 @@ export const processosService = {
   remover: (id: number) => api.delete(`/processos/${id}`),
   aceitarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/aceitar`),
   recusarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/recusar`),
+  encerrar: (processoId: number) => api.patch(`/processos/${processoId}/encerrar`),
   // advogado
   abertos: (especializacao?: string) =>
     api.get('/processos', { params: especializacao ? { especializacao } : {} }),

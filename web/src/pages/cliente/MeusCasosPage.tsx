@@ -47,6 +47,8 @@ export function MeusCasosPage() {
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [propostaConfirmar, setPropostaConfirmar] = useState<Proposta | null>(null);
   const [aceitando, setAceitando] = useState(false);
+  const [encerrarId, setEncerrarId] = useState<number | null>(null);
+  const [encerrando, setEncerrando] = useState(false);
   const { mostrar } = useToast();
 
   const carregar = useCallback(async () => {
@@ -99,6 +101,21 @@ export function MeusCasosPage() {
       await carregar();
     } catch (e: any) {
       mostrar(e.response?.data?.message ?? 'Falha ao recusar', 'erro');
+    }
+  }
+
+  async function confirmarEncerramento() {
+    if (encerrarId === null) return;
+    setEncerrando(true);
+    try {
+      await processosService.encerrar(encerrarId);
+      setEncerrarId(null);
+      mostrar('Caso encerrado', 'sucesso');
+      await carregar();
+    } catch (e: any) {
+      mostrar(e.response?.data?.message ?? 'Falha ao encerrar', 'erro');
+    } finally {
+      setEncerrando(false);
     }
   }
 
@@ -196,7 +213,18 @@ export function MeusCasosPage() {
                 <div className="p-6">
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <h2 className="flex-1 text-lg font-bold text-slate-800">{selecionado.titulo}</h2>
-                    <StatusBadge status={selecionado.status} />
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <StatusBadge status={selecionado.status} />
+                      {selecionado.status !== 'encerrado' && (
+                        <button
+                          type="button"
+                          onClick={() => setEncerrarId(selecionado.id)}
+                          className="text-xs font-semibold text-erro hover:underline"
+                        >
+                          Encerrar caso
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <span className="mb-3 inline-block rounded-full bg-primary/8 px-2 py-0.5 text-xs font-semibold text-primary">
                     {ESP_ICONS[selecionado.especializacao] ?? '⚖️'} {selecionado.especializacao}
@@ -276,6 +304,17 @@ export function MeusCasosPage() {
         carregando={aceitando}
         onConfirmar={confirmarAceite}
         onCancelar={() => setPropostaConfirmar(null)}
+      />
+
+      <ConfirmModal
+        aberto={encerrarId !== null}
+        titulo="Encerrar caso"
+        mensagem="Tem certeza que deseja encerrar este caso? Esta ação o move para Encerrado e não pode ser desfeita."
+        textoConfirmar="Encerrar"
+        variante="reforcado"
+        carregando={encerrando}
+        onConfirmar={confirmarEncerramento}
+        onCancelar={() => setEncerrarId(null)}
       />
     </div>
   );
