@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { advogadosService, processosService } from '../../services/api';
+import { advogadosService, areasService, processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
+import { FormField } from '../../components/FormField';
+import { useToast } from '../../components/Toast';
 
 const NAV = [
   { label: 'Oportunidades', to: '/' },
@@ -8,138 +10,199 @@ const NAV = [
   { label: 'Meu Perfil', to: '/perfil' },
 ];
 
-const PLAN_STYLE: Record<string, string> = {
-  Básico: 'bg-slate-100 text-slate-700 ring-slate-200',
-  Profissional: 'bg-blue-100 text-blue-700 ring-blue-200',
-  Elite: 'bg-amber-100 text-amber-700 ring-amber-300',
-};
+type Quota = { plano: string; limite: number | null; usadas: number; restantes: number | null };
+type Area = { id: number; nome: string };
 
-type Quota = {
-  plano: string;
-  limite: number | null;
-  usadas: number;
-  restantes: number | null;
-};
+const INP = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800';
 
 export function PerfilAdvogadoPage() {
   const [perfil, setPerfil] = useState<any>(null);
+  const [todasAreas, setTodasAreas] = useState<Area[]>([]);
   const [quota, setQuota] = useState<Quota | null>(null);
   const [loading, setLoading] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [form, setForm] = useState({ nome: '', oab: '', estadoAtuacao: '', cidadeAtuacao: '' });
+  const { mostrar } = useToast();
+
+  function aplicarPerfil(p: any) {
+    setPerfil(p);
+    setForm({
+      nome: p.nome ?? '',
+      oab: p.oab ?? '',
+      estadoAtuacao: p.estadoAtuacao ?? '',
+      cidadeAtuacao: p.cidadeAtuacao ?? '',
+    });
+  }
 
   useEffect(() => {
-    Promise.all([advogadosService.meuPerfil(), processosService.quota()])
-      .then(([{ data: p }, { data: q }]) => { setPerfil(p); setQuota(q); })
+    Promise.all([advogadosService.meuPerfil(), processosService.quota(), areasService.listar()])
+      .then(([{ data: p }, { data: q }, { data: a }]) => {
+        aplicarPerfil(p);
+        setQuota(q);
+        setTodasAreas(a);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  async function salvarDados() {
+    setSalvando(true);
+    try {
+      const { data } = await advogadosService.atualizarPerfil(form);
+      aplicarPerfil(data);
+      mostrar('Perfil atualizado', 'sucesso');
+    } catch (e: any) {
+      mostrar(e.response?.data?.message ?? 'Falha ao salvar', 'erro');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function adicionarArea(areaId: number) {
+    try {
+      const { data } = await advogadosService.adicionarArea(areaId);
+      aplicarPerfil(data);
+    } catch (e: any) {
+      mostrar(e.response?.data?.message ?? 'Falha ao adicionar área', 'erro');
+    }
+  }
+
+  async function removerArea(nome: string) {
+    const area = todasAreas.find((a) => a.nome === nome);
+    if (!area) return;
+    try {
+      const { data } = await advogadosService.removerArea(area.id);
+      aplicarPerfil(data);
+    } catch (e: any) {
+      mostrar(e.response?.data?.message ?? 'Falha ao remover área', 'erro');
+    }
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar items={NAV} />
         <div className="flex justify-center py-24">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     );
   }
 
+  const areas: string[] = perfil?.areas ?? [];
+  const disponiveis = todasAreas.filter((a) => !areas.includes(a.nome));
   const ini = perfil?.nome?.split(' ').filter(Boolean).map((n: string) => n[0]).slice(0, 2).join('') ?? '?';
-  const plano = perfil?.plano;
-  const planStyle = PLAN_STYLE[plano?.nome] ?? PLAN_STYLE['Básico'];
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar items={NAV} />
 
-      {/* Hero */}
       <div className="bg-primary">
-        <div className="max-w-5xl mx-auto px-6 py-10 flex items-center gap-5">
-          <div className="w-20 h-20 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white font-black text-2xl">
+        <div className="mx-auto flex max-w-5xl items-center gap-5 px-6 py-8">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-2xl font-black text-white">
             {ini}
           </div>
           <div>
-            <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-1">Portal do Advogado</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-blue-300">Portal do Advogado</p>
             <h1 className="text-2xl font-extrabold text-white">{perfil?.nome}</h1>
-            <div className="flex flex-wrap items-center gap-3 mt-2">
-              <span className="text-blue-200 text-sm">{perfil?.especializacao}</span>
-              <span className="text-blue-300 text-sm">·</span>
-              <span className="text-blue-200 text-sm">OAB {perfil?.oab}</span>
-            </div>
+            <p className="mt-1 text-sm text-blue-200">OAB {perfil?.oab} · ⭐ {perfil?.nota ?? '—'}</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Plano */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plano atual</p>
-              <p className="text-2xl font-extrabold text-slate-800 mt-1">{plano?.nome}</p>
-            </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ring-1 ${planStyle}`}>
-              {perfil?.assinatura ?? 'ativo'}
-            </span>
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-6 py-8 md:grid-cols-2">
+        {/* Editar dados */}
+        <div className="rounded-2xl border border-slate-100 bg-white p-6 md:col-span-2">
+          <p className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Dados do perfil</p>
+          <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+            <FormField label="Nome">
+              {(p) => <input {...p} className={INP} value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />}
+            </FormField>
+            <FormField label="OAB">
+              {(p) => <input {...p} className={INP} value={form.oab} onChange={(e) => setForm({ ...form, oab: e.target.value })} />}
+            </FormField>
+            <FormField label="Estado de atuação (UF)">
+              {(p) => <input {...p} className={INP} maxLength={2} value={form.estadoAtuacao} onChange={(e) => setForm({ ...form, estadoAtuacao: e.target.value.toUpperCase() })} />}
+            </FormField>
+            <FormField label="Cidade de atuação">
+              {(p) => <input {...p} className={INP} value={form.cidadeAtuacao} onChange={(e) => setForm({ ...form, cidadeAtuacao: e.target.value })} />}
+            </FormField>
           </div>
-          <p className="text-slate-500 text-sm">
-            R$ {Number(plano?.valorMensal).toFixed(2)}/mês · R$ {Number(plano?.valorAnual).toFixed(2)}/ano
-          </p>
+          <button
+            type="button"
+            onClick={salvarDados}
+            disabled={salvando}
+            className="mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60"
+          >
+            {salvando ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+
+        {/* Áreas de atuação (N:N) */}
+        <div className="rounded-2xl border border-slate-100 bg-white p-6 md:col-span-2">
+          <p className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Áreas de atuação</p>
+          <div className="flex flex-wrap gap-2">
+            {areas.map((nome) => (
+              <span key={nome} className="flex items-center gap-2 rounded-full bg-primary/8 px-3 py-1.5 text-sm font-semibold text-primary">
+                {nome}
+                <button
+                  type="button"
+                  onClick={() => removerArea(nome)}
+                  aria-label={`Remover ${nome}`}
+                  className="text-slate-400 hover:text-erro"
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            {areas.length === 0 && <span className="text-sm text-slate-400">Nenhuma área cadastrada.</span>}
+          </div>
+          {disponiveis.length > 0 && (
+            <div className="mt-4 flex items-center gap-2">
+              <select
+                aria-label="Adicionar área"
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { adicionarArea(Number(e.target.value)); e.target.value = ''; } }}
+                className="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-500"
+              >
+                <option value="" disabled>+ Adicionar área…</option>
+                {disponiveis.map((a) => (
+                  <option key={a.id} value={a.id}>{a.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Plano */}
+        <div className="rounded-2xl border border-slate-100 bg-white p-6">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Plano atual</p>
+          <p className="mt-1 text-2xl font-extrabold text-slate-800">{perfil?.plano?.nome}</p>
+          {perfil?.plano && (
+            <p className="mt-1 text-sm text-slate-500">
+              R$ {Number(perfil.plano.valorMensal).toFixed(2)}/mês · R$ {Number(perfil.plano.valorAnual).toFixed(2)}/ano
+            </p>
+          )}
+          <button type="button" disabled className="mt-4 rounded-lg bg-secondary/40 px-4 py-2 text-sm font-bold text-primary/60" title="Disponível em breve">
+            Trocar plano (em breve)
+          </button>
         </div>
 
         {/* Quota */}
         {quota && (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Propostas neste mês</p>
+          <div className="rounded-2xl border border-slate-100 bg-white p-6">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Propostas neste mês</p>
             {quota.limite === null ? (
-              <>
-                <p className="text-3xl font-extrabold text-emerald-600">{quota.usadas}</p>
-                <p className="text-slate-500 text-sm mt-1">Plano com envio ilimitado</p>
-              </>
+              <p className="text-3xl font-extrabold text-emerald-600">{quota.usadas} <span className="text-base font-medium text-slate-400">ilimitado</span></p>
             ) : (
               <>
                 <p className="text-3xl font-extrabold text-slate-800">
-                  {quota.usadas}<span className="text-slate-400 text-xl"> / {quota.limite}</span>
+                  {quota.usadas}<span className="text-xl text-slate-400"> / {quota.limite}</span>
                 </p>
-                <p className={`text-sm mt-1 font-medium ${
-                  quota.restantes === 0 ? 'text-red-600' :
-                  (quota.restantes ?? 0) <= 2 ? 'text-amber-600' : 'text-slate-500'
-                }`}>
-                  {quota.restantes} restantes neste mês
-                </p>
-                <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      quota.restantes === 0 ? 'bg-red-500' :
-                      (quota.restantes ?? 0) <= 2 ? 'bg-amber-500' : 'bg-primary'
-                    }`}
-                    style={{ width: `${Math.min(100, (quota.usadas / quota.limite) * 100)}%` }}
-                  />
-                </div>
+                <p className="mt-1 text-sm text-slate-500">{quota.restantes} restantes · {perfil?.clientesVinculados ?? 0} clientes vinculados</p>
               </>
             )}
           </div>
         )}
-
-        {/* Stats */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 md:col-span-2">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Estatísticas</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div>
-              <p className="text-3xl font-extrabold text-primary">{perfil?.conexoes?.length ?? 0}</p>
-              <p className="text-slate-500 text-sm mt-1">Clientes vinculados</p>
-            </div>
-            <div>
-              <p className="text-3xl font-extrabold text-secondary">
-                {new Date(perfil?.dataCadastro).getFullYear()}
-              </p>
-              <p className="text-slate-500 text-sm mt-1">Membro desde</p>
-            </div>
-            <div>
-              <p className="text-3xl font-extrabold text-slate-700 capitalize">{perfil?.assinatura ?? '—'}</p>
-              <p className="text-slate-500 text-sm mt-1">Assinatura</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

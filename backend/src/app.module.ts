@@ -9,6 +9,7 @@ import { PlanosModule } from './planos/planos.module';
 import { ConexoesModule } from './conexoes/conexoes.module';
 import { ProcessosModule } from './processos/processos.module';
 import { MidiaModule } from './midia/midia.module';
+import { AreasModule } from './areas/areas.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MidiaModule } from './midia/midia.module';
     ConexoesModule,
     ProcessosModule,
     MidiaModule,
+    AreasModule,
   ],
 })
 export class AppModule {}

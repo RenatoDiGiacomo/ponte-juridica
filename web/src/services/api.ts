@@ -20,6 +20,14 @@ export const advogadosService = {
   listar: (especializacao?: string) => api.get('/advogados', { params: especializacao ? { especializacao } : {} }),
   buscar: (id: number) => api.get(`/advogados/${id}`),
   meuPerfil: () => api.get('/advogados/perfil'),
+  atualizarPerfil: (data: { nome?: string; oab?: string; estadoAtuacao?: string; cidadeAtuacao?: string }) =>
+    api.patch('/advogados/perfil', data),
+  adicionarArea: (areaId: number) => api.post('/advogados/perfil/areas', { areaId }),
+  removerArea: (areaId: number) => api.delete(`/advogados/perfil/areas/${areaId}`),
+};
+
+export const areasService = {
+  listar: () => api.get<{ id: number; nome: string }[]>('/areas'),
 };
 
 export const planosService = {

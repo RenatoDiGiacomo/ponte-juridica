@@ -23,6 +23,14 @@ export interface AdvogadoContatoDTO extends AdvogadoPublicoDTO {
   whatsapp: string | null;
 }
 
+/** Perfil do próprio advogado (contato + plano completo + contagem de clientes). */
+export interface AdvogadoPerfilDTO extends Omit<AdvogadoContatoDTO, 'plano'> {
+  assinatura?: string;
+  dataCadastro?: string;
+  plano: { id: number; nome: string; valorMensal: string; valorAnual: string } | null;
+  clientesVinculados: number;
+}
+
 // Shape mínimo esperado do Prisma (com `areas: { area: { nome } }` incluído).
 type AdvogadoRaw = {
   id: number;
