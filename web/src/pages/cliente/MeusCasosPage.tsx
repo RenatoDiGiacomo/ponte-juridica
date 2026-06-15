@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
+import { StatusBadge } from '../../components/StatusBadge';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/Skeleton';
 
 const NAV = [
   { label: 'Meus Casos', to: '/' },
@@ -15,12 +18,6 @@ const NAV = [
 const ESP_ICONS: Record<string, string> = {
   Criminal: '🔒', Trabalhista: '🏭', Família: '👨‍👩‍👧',
   Cível: '📋', Tributário: '💰', Previdenciário: '🛡️',
-};
-
-const STATUS: Record<string, { label: string; cls: string }> = {
-  aberto: { label: 'Aberto', cls: 'bg-blue-50 text-blue-700 ring-blue-200' },
-  em_atendimento: { label: 'Em atendimento', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  encerrado: { label: 'Encerrado', cls: 'bg-slate-100 text-slate-500 ring-slate-200' },
 };
 
 type Proposta = {
@@ -37,6 +34,8 @@ type Processo = {
   descricao: string;
   especializacao: string;
   status: 'aberto' | 'em_atendimento' | 'encerrado';
+  estado?: string | null;
+  cidade?: string | null;
   dataCriacao: string;
   propostas: Proposta[];
 };
@@ -44,20 +43,40 @@ type Processo = {
 export function MeusCasosPage() {
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState('');
+  const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [propostaConfirmar, setPropostaConfirmar] = useState<Proposta | null>(null);
   const [aceitando, setAceitando] = useState(false);
   const { mostrar } = useToast();
 
   const carregar = useCallback(async () => {
-    try {
-      const { data } = await processosService.meus();
-      setProcessos(data);
-    } finally {
-      setLoading(false);
-    }
+    const { data } = await processosService.meus();
+    setProcessos(data);
   }, []);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => {
+    carregar().finally(() => setLoading(false));
+  }, [carregar]);
+
+  const filtrados = useMemo(
+    () =>
+      processos.filter(
+        (p) => busca === '' || p.titulo.toLowerCase().includes(busca.toLowerCase()),
+      ),
+    [processos, busca],
+  );
+
+  // Pré-seleciona o 1º caso da lista filtrada em tela larga (≥1024px); preserva seleção válida.
+  useEffect(() => {
+    if (loading) return;
+    const valido = selecionadoId !== null && filtrados.some((p) => p.id === selecionadoId);
+    if (!valido) {
+      const larga = window.matchMedia('(min-width: 1024px)').matches;
+      setSelecionadoId(larga && filtrados.length ? filtrados[0].id : null);
+    }
+  }, [filtrados, loading, selecionadoId]);
+
+  const selecionado = filtrados.find((p) => p.id === selecionadoId) ?? null;
 
   async function confirmarAceite() {
     if (!propostaConfirmar) return;
@@ -66,7 +85,7 @@ export function MeusCasosPage() {
       await processosService.aceitarProposta(propostaConfirmar.id);
       setPropostaConfirmar(null);
       mostrar('Proposta aceita', 'sucesso');
-      carregar();
+      await carregar();
     } catch (e: any) {
       mostrar(e.response?.data?.message ?? 'Falha ao aceitar', 'erro');
     } finally {
@@ -77,7 +96,7 @@ export function MeusCasosPage() {
   async function recusarProposta(p: Proposta) {
     try {
       await processosService.recusarProposta(p.id);
-      carregar();
+      await carregar();
     } catch (e: any) {
       mostrar(e.response?.data?.message ?? 'Falha ao recusar', 'erro');
     }
@@ -87,119 +106,160 @@ export function MeusCasosPage() {
     <div className="min-h-screen bg-slate-50">
       <Navbar items={NAV} />
 
-      {/* Hero */}
+      {/* Hero — título reduzido (C2) */}
       <div className="bg-primary">
-        <div className="max-w-6xl mx-auto px-6 py-10 flex items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Meus Casos</h1>
-            <p className="text-blue-200 mt-1 text-sm">
+            <h1 className="text-xl font-bold text-white">Meus Casos</h1>
+            <p className="mt-0.5 text-sm text-blue-200">
               {loading ? '...' : `${processos.length} ${processos.length === 1 ? 'caso publicado' : 'casos publicados'}`}
             </p>
           </div>
           <Link
             to="/casos/novo"
-            className="bg-secondary text-primary font-bold px-5 py-3 rounded-xl text-sm hover:bg-secondary/90 active:scale-[0.98] transition-all shadow-lg"
+            className="rounded-xl bg-secondary px-5 py-3 text-sm font-bold text-primary shadow-lg transition-all hover:bg-secondary/90 active:scale-[0.98]"
           >
             + Publicar caso
           </Link>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      {/* Master-detail */}
+      <div className="mx-auto max-w-6xl px-6 py-6">
         {loading ? (
-          <div className="flex flex-col items-center py-24 gap-3">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-400 text-sm">Carregando...</p>
+          <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
           </div>
         ) : processos.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-100 py-24 text-center">
-            <div className="text-5xl mb-4">📝</div>
-            <p className="font-semibold text-slate-700 text-lg">Você ainda não publicou nenhum caso</p>
-            <p className="text-slate-400 text-sm mt-2 mb-6">
-              Publique seu caso e advogados especializados vão te enviar propostas
-            </p>
-            <Link
-              to="/casos/novo"
-              className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors"
-            >
-              + Publicar primeiro caso
-            </Link>
+          <div className="rounded-2xl border border-slate-100 bg-white">
+            <EmptyState
+              icone="📝"
+              titulo="Você ainda não publicou nenhum caso"
+              descricao="Publique seu caso e advogados especializados vão te enviar propostas."
+              acao={
+                <Link to="/casos/novo" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary/90">
+                  + Publicar primeiro caso
+                </Link>
+              }
+            />
           </div>
         ) : (
-          <div className="space-y-5">
-            {processos.map((p) => {
-              const st = STATUS[p.status] ?? STATUS.aberto;
-              return (
-                <div key={p.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <h3 className="font-bold text-slate-800 text-lg flex-1">{p.titulo}</h3>
-                      <span className={`shrink-0 text-xs font-bold px-3 py-1 rounded-full ring-1 ${st.cls}`}>
-                        {st.label}
-                      </span>
-                    </div>
-                    <span className="inline-block text-xs font-semibold text-primary bg-primary/8 px-2 py-0.5 rounded-full mb-3">
-                      {ESP_ICONS[p.especializacao] ?? '⚖️'} {p.especializacao}
-                    </span>
-                    <p className="text-slate-600 text-sm leading-relaxed">{p.descricao}</p>
-                    <p className="text-xs text-slate-400 mt-3">
-                      Publicado em {new Date(p.dataCriacao).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
+          <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+            {/* Sidebar — lista de casos */}
+            <aside className="overflow-hidden rounded-2xl bg-[#16314e] p-4">
+              <p className="mb-2 text-[10px] font-bold tracking-widest text-[#7e9bbd]">MEUS CASOS</p>
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="🔍 Buscar caso..."
+                aria-label="Buscar caso"
+                className="mb-3 w-full rounded-lg border border-white/10 bg-[#0f273f] px-3 py-2 text-sm text-white placeholder:text-[#7e9bbd]"
+              />
+              <ul className="space-y-1.5">
+                {filtrados.map((p) => {
+                  const ativo = p.id === selecionadoId;
+                  return (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        aria-current={ativo ? 'true' : undefined}
+                        onClick={() => setSelecionadoId(p.id)}
+                        className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                          ativo ? 'border-secondary bg-[#fdf6e3]' : 'border-transparent hover:bg-white/5'
+                        }`}
+                      >
+                        <p className={`text-sm font-bold leading-tight ${ativo ? 'text-primary' : 'text-slate-100'}`}>
+                          {p.titulo}
+                        </p>
+                        <p className={`mt-1.5 text-[11px] ${ativo ? 'text-[#94795b]' : 'text-[#7e9bbd]'}`}>
+                          {p.propostas.length === 0
+                            ? 'Sem propostas'
+                            : `${p.propostas.length} ${p.propostas.length === 1 ? 'proposta' : 'propostas'}`}
+                        </p>
+                      </button>
+                    </li>
+                  );
+                })}
+                {filtrados.length === 0 && (
+                  <li className="py-6 text-center text-xs text-[#7e9bbd]">Nenhum caso encontrado.</li>
+                )}
+              </ul>
+            </aside>
 
-                  {p.propostas.length > 0 && (
-                    <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-4">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                        Propostas recebidas ({p.propostas.length})
-                      </p>
-                      <div className="space-y-2">
-                        {p.propostas.map((pr) => (
-                          <div key={pr.id} className="bg-white rounded-xl border border-slate-100 p-4">
-                            <div className="flex items-start justify-between gap-3 mb-2">
-                              <div>
-                                <p className="font-bold text-slate-800">{pr.advogado.nome}</p>
-                                <p className="text-xs text-slate-400">
-                                  OAB {pr.advogado.oab} · {pr.advogado.especializacao}
-                                </p>
-                              </div>
-                              <p className="font-bold text-secondary text-lg shrink-0">
-                                R$ {Number(pr.valorEstimado).toFixed(2)}
+            {/* Detalhe — caso selecionado + propostas */}
+            <section className="rounded-2xl border border-slate-100 bg-white">
+              {!selecionado ? (
+                <EmptyState icone="👈" titulo="Selecione um caso" descricao="Escolha um caso na lista para ver as propostas recebidas." />
+              ) : (
+                <div className="p-6">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <h2 className="flex-1 text-lg font-bold text-slate-800">{selecionado.titulo}</h2>
+                    <StatusBadge status={selecionado.status} />
+                  </div>
+                  <span className="mb-3 inline-block rounded-full bg-primary/8 px-2 py-0.5 text-xs font-semibold text-primary">
+                    {ESP_ICONS[selecionado.especializacao] ?? '⚖️'} {selecionado.especializacao}
+                  </span>
+                  <p className="text-sm leading-relaxed text-slate-600">{selecionado.descricao}</p>
+                  <p className="mt-3 text-xs text-slate-400">
+                    Publicado em {new Date(selecionado.dataCriacao).toLocaleDateString('pt-BR')}
+                    {selecionado.cidade && selecionado.estado ? ` · 📍 ${selecionado.cidade}/${selecionado.estado}` : ''}
+                  </p>
+
+                  <p className="mt-6 mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Propostas recebidas ({selecionado.propostas.length})
+                  </p>
+                  {selecionado.propostas.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
+                      Nenhuma proposta ainda neste caso.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {selecionado.propostas.map((pr) => (
+                        <div key={pr.id} className="rounded-xl border border-slate-100 p-4">
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-bold text-slate-800">{pr.advogado.nome}</p>
+                              <p className="text-xs text-slate-400">
+                                OAB {pr.advogado.oab} · {pr.advogado.especializacao}
                               </p>
                             </div>
-                            <p className="text-slate-600 text-sm">{pr.mensagem}</p>
-
-                            {pr.status === 'pendente' && p.status === 'aberto' && (
-                              <div className="flex gap-2 mt-3">
-                                <button
-                                  type="button"
-                                  onClick={() => setPropostaConfirmar(pr)}
-                                  className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors"
-                                >
-                                  ✓ Aceitar
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => recusarProposta(pr)}
-                                  className="flex-1 bg-white border border-slate-200 text-slate-600 py-2 rounded-lg text-sm font-medium hover:bg-slate-50"
-                                >
-                                  Recusar
-                                </button>
-                              </div>
-                            )}
-                            {pr.status === 'aceita' && (
-                              <p className="mt-2 text-emerald-700 font-bold text-sm">✓ Proposta aceita</p>
-                            )}
-                            {pr.status === 'recusada' && (
-                              <p className="mt-2 text-slate-400 text-sm">Recusada</p>
-                            )}
+                            <p className="shrink-0 text-lg font-bold text-secondary">
+                              R$ {Number(pr.valorEstimado).toFixed(2)}
+                            </p>
                           </div>
-                        ))}
-                      </div>
+                          <p className="text-sm text-slate-600">{pr.mensagem}</p>
+
+                          {pr.status === 'pendente' && selecionado.status === 'aberto' && (
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setPropostaConfirmar(pr)}
+                                className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+                              >
+                                ✓ Aceitar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => recusarProposta(pr)}
+                                className="flex-1 rounded-lg border border-slate-200 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                              >
+                                Recusar
+                              </button>
+                            </div>
+                          )}
+                          {pr.status === 'aceita' && (
+                            <p className="mt-2 text-sm font-bold text-emerald-700">✓ Proposta aceita</p>
+                          )}
+                          {pr.status === 'recusada' && <p className="mt-2 text-sm text-slate-400">Recusada</p>}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              );
-            })}
+              )}
+            </section>
           </div>
         )}
       </div>
