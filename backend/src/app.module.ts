@@ -10,6 +10,7 @@ import { ConexoesModule } from './conexoes/conexoes.module';
 import { ProcessosModule } from './processos/processos.module';
 import { MidiaModule } from './midia/midia.module';
 import { AreasModule } from './areas/areas.module';
+import { ClientesModule } from './clientes/clientes.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AreasModule } from './areas/areas.module';
     ProcessosModule,
     MidiaModule,
     AreasModule,
+    ClientesModule,
   ],
 })
 export class AppModule {}

@@ -34,6 +34,24 @@ export const areasService = {
   listar: () => api.get<{ id: number; nome: string }[]>('/areas'),
 };
 
+export const clientesService = {
+  meuPerfil: () => api.get('/clientes/perfil'),
+  atualizarPerfil: (data: Record<string, string>) => api.patch('/clientes/perfil', data),
+};
+
+export const midiaService = {
+  enviarFoto: (arquivo: File) => {
+    const fd = new FormData();
+    fd.append('arquivo', arquivo);
+    return api.post('/me/foto', fd);
+  },
+  enviarDocumento: (arquivo: File) => {
+    const fd = new FormData();
+    fd.append('arquivo', arquivo);
+    return api.post('/me/documento', fd);
+  },
+};
+
 export const planosService = {
   listar: () => api.get('/planos'),
 };
