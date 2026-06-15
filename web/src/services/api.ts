@@ -56,8 +56,10 @@ export const processosService = {
   recusarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/recusar`),
   encerrar: (processoId: number) => api.patch(`/processos/${processoId}/encerrar`),
   // advogado
-  abertos: (especializacao?: string) =>
-    api.get('/processos', { params: especializacao ? { especializacao } : {} }),
+  abertos: (
+    params: { area?: string; postadoDias?: number; estado?: string; cidade?: string; page: number; pageSize: number },
+    signal?: AbortSignal,
+  ) => api.get('/processos', { params, signal }),
   detalhe: (id: number) => api.get(`/processos/${id}`),
   enviarProposta: (
     processoId: number,

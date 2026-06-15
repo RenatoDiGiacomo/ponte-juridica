@@ -5,9 +5,12 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CriarProcessoDto } from './dto/criar-processo.dto';
 import { CriarPropostaDto } from './dto/criar-proposta.dto';
+import { OportunidadesQueryDto } from './dto/oportunidades-query.dto';
+import { paginated } from '../common/dto/pagination-query.dto';
 
 /** Limite de propostas/mês por nome de plano. `null` = ilimitado. */
 const LIMITE_PROPOSTAS_POR_PLANO: Record<string, number | null> = {
@@ -81,25 +84,44 @@ export class ProcessosService {
     });
   }
 
-  /** Lista de processos abertos para advogados — default filtra pela especialização do advogado logado. */
-  async listarAbertos(advogadoId: number, especializacao?: string) {
-    const advogado = await this.prisma.advogado.findFirst({
-      where: { id: advogadoId, softDelete: false },
-      select: { especializacao: true },
+  /** Oportunidades (casos abertos) para o advogado — default = suas áreas; filtros tempo/região; paginado. */
+  async listarAbertos(advogadoId: number, q: OportunidadesQueryDto) {
+    // Default inteligente: áreas em que o advogado atua (N:N).
+    const vinculos = await this.prisma.advogadoArea.findMany({
+      where: { advogadoId },
+      select: { area: { select: { nome: true } } },
     });
-    const filtro = especializacao ?? advogado?.especializacao;
-    return this.prisma.processo.findMany({
-      where: {
-        softDelete: false,
-        status: 'aberto',
-        ...(filtro && { especializacao: filtro }),
-      },
-      orderBy: { dataCriacao: 'desc' },
-      include: {
-        cliente: { select: { id: true, nome: true } },
-        _count: { select: { propostas: { where: { softDelete: false } } } },
-      },
-    });
+    const minhasAreas = vinculos.map((v) => v.area.nome);
+
+    const where: Prisma.ProcessoWhereInput = {
+      softDelete: false,
+      status: 'aberto',
+      ...(q.area
+        ? { especializacao: q.area }
+        : minhasAreas.length
+          ? { especializacao: { in: minhasAreas } }
+          : {}),
+      ...(q.estado && { estado: q.estado }),
+      ...(q.cidade && { cidade: { contains: q.cidade } }),
+      ...(q.postadoDias && {
+        dataCriacao: { gte: new Date(Date.now() - q.postadoDias * 86_400_000) },
+      }),
+    };
+
+    const [total, casos] = await this.prisma.$transaction([
+      this.prisma.processo.count({ where }),
+      this.prisma.processo.findMany({
+        where,
+        orderBy: { dataCriacao: 'desc' },
+        skip: q.skip,
+        take: q.take,
+        include: {
+          cliente: { select: { id: true, nome: true } },
+          _count: { select: { propostas: { where: { softDelete: false } } } },
+        },
+      }),
+    ]);
+    return paginated(casos, total, { page: q.page, pageSize: q.pageSize });
   }
 
   async findOne(id: number) {

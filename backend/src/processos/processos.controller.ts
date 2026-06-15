@@ -16,6 +16,7 @@ import { ProcessosService } from './processos.service';
 import { CriarProcessoDto } from './dto/criar-processo.dto';
 import { CriarPropostaDto } from './dto/criar-proposta.dto';
 import { CriarRelatorioDto } from './dto/criar-relatorio.dto';
+import { OportunidadesQueryDto } from './dto/oportunidades-query.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsuarioAtual } from '../common/decorators/usuario-atual.decorator';
 
@@ -59,12 +60,11 @@ export class ProcessosController {
 
   @Get('processos')
   @ApiOperation({
-    summary: 'Advogado lista processos abertos (default: filtra pela própria especialização)',
+    summary: 'Oportunidades do advogado (default: suas áreas; filtros tempo/região; paginado)',
   })
-  @ApiQuery({ name: 'especializacao', required: false })
-  abertos(@UsuarioAtual() u: Usuario, @Query('especializacao') especializacao?: string) {
+  abertos(@UsuarioAtual() u: Usuario, @Query() q: OportunidadesQueryDto) {
     exigirAdvogado(u);
-    return this.processos.listarAbertos(u.id, especializacao);
+    return this.processos.listarAbertos(u.id, q);
   }
 
   @Get('propostas/quota')
