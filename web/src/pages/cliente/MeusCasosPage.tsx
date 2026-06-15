@@ -4,9 +4,23 @@ import { processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useToast } from '../../components/Toast';
-import { StatusBadge } from '../../components/StatusBadge';
+import { StatusBadge, type CasoStatus } from '../../components/StatusBadge';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
+import { FilterChips } from '../../components/FilterChips';
+
+const AREAS = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
+const STATUS_OPCOES: { label: string; valor: CasoStatus | 'todos' }[] = [
+  { label: 'Todos', valor: 'todos' },
+  { label: 'Aberto', valor: 'aberto' },
+  { label: 'Em atendimento', valor: 'em_atendimento' },
+  { label: 'Encerrado', valor: 'encerrado' },
+];
+
+function menorValor(p: { propostas: { valorEstimado: string }[] }): number {
+  if (!p.propostas.length) return Number.POSITIVE_INFINITY;
+  return Math.min(...p.propostas.map((pr) => Number(pr.valorEstimado)));
+}
 
 const NAV = [
   { label: 'Meus Casos', to: '/' },
@@ -44,6 +58,9 @@ export function MeusCasosPage() {
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
+  const [statusFiltro, setStatusFiltro] = useState<CasoStatus | 'todos'>('todos');
+  const [tipoFiltro, setTipoFiltro] = useState('');
+  const [ordemValor, setOrdemValor] = useState<'' | 'asc' | 'desc'>('');
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [propostaConfirmar, setPropostaConfirmar] = useState<Proposta | null>(null);
   const [aceitando, setAceitando] = useState(false);
@@ -60,13 +77,20 @@ export function MeusCasosPage() {
     carregar().finally(() => setLoading(false));
   }, [carregar]);
 
-  const filtrados = useMemo(
-    () =>
-      processos.filter(
-        (p) => busca === '' || p.titulo.toLowerCase().includes(busca.toLowerCase()),
-      ),
-    [processos, busca],
-  );
+  const filtrados = useMemo(() => {
+    let lista = processos.filter(
+      (p) =>
+        (busca === '' || p.titulo.toLowerCase().includes(busca.toLowerCase())) &&
+        (statusFiltro === 'todos' || p.status === statusFiltro) &&
+        (tipoFiltro === '' || p.especializacao === tipoFiltro),
+    );
+    if (ordemValor) {
+      lista = [...lista].sort((a, b) =>
+        ordemValor === 'asc' ? menorValor(a) - menorValor(b) : menorValor(b) - menorValor(a),
+      );
+    }
+    return lista;
+  }, [processos, busca, statusFiltro, tipoFiltro, ordemValor]);
 
   // Pré-seleciona o 1º caso da lista filtrada em tela larga (≥1024px); preserva seleção válida.
   useEffect(() => {
@@ -139,6 +163,34 @@ export function MeusCasosPage() {
             + Publicar caso
           </Link>
         </div>
+        {processos.length > 0 && (
+          <div className="mx-auto max-w-6xl px-6 pb-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <FilterChips opcoes={STATUS_OPCOES} valor={statusFiltro} onChange={setStatusFiltro} variante="escuro" />
+              <select
+                aria-label="Filtrar por tipo de processo"
+                value={tipoFiltro}
+                onChange={(e) => setTipoFiltro(e.target.value)}
+                className="min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100"
+              >
+                <option value="" className="text-slate-800">Todas as áreas</option>
+                {AREAS.map((a) => (
+                  <option key={a} value={a} className="text-slate-800">{a}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Ordenar por valor"
+                value={ordemValor}
+                onChange={(e) => setOrdemValor(e.target.value as '' | 'asc' | 'desc')}
+                className="min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100"
+              >
+                <option value="" className="text-slate-800">Ordenar: padrão</option>
+                <option value="asc" className="text-slate-800">Valor ↑ (menor)</option>
+                <option value="desc" className="text-slate-800">Valor ↓ (maior)</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Master-detail */}
