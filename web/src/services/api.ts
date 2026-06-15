@@ -28,6 +28,7 @@ export const advogadosService = {
     api.patch('/advogados/perfil', data),
   adicionarArea: (areaId: number) => api.post('/advogados/perfil/areas', { areaId }),
   removerArea: (areaId: number) => api.delete(`/advogados/perfil/areas/${areaId}`),
+  trocarPlano: (planoId: number) => api.patch('/advogados/perfil/plano', { planoId }),
 };
 
 export const areasService = {

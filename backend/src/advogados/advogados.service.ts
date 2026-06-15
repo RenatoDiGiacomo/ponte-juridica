@@ -132,4 +132,12 @@ export class AdvogadosService {
     await this.prisma.advogadoArea.deleteMany({ where: { advogadoId, areaId } });
     return this.findPerfil(advogadoId);
   }
+
+  /** Efetiva a troca de plano (sem cobrança real). A cota recalcula a partir do novo plano. */
+  async trocarPlano(advogadoId: number, planoId: number): Promise<AdvogadoPerfilDTO | null> {
+    const plano = await this.prisma.plano.findFirst({ where: { id: planoId, softDelete: false } });
+    if (!plano) throw new NotFoundException('Plano não encontrado');
+    await this.prisma.advogado.update({ where: { id: advogadoId }, data: { planoId } });
+    return this.findPerfil(advogadoId);
+  }
 }

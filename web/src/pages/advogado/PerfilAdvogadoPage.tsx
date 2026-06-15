@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { advogadosService, areasService, processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { FormField } from '../../components/FormField';
+import { TrocarPlanoModal } from '../../components/TrocarPlanoModal';
 import { useToast } from '../../components/Toast';
 
 const NAV = [
@@ -22,6 +23,7 @@ export function PerfilAdvogadoPage() {
   const [quota, setQuota] = useState<Quota | null>(null);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [modalPlano, setModalPlano] = useState(false);
   const [form, setForm] = useState({ nome: '', oab: '', estadoAtuacao: '', cidadeAtuacao: '' });
   const { mostrar } = useToast();
 
@@ -183,8 +185,8 @@ export function PerfilAdvogadoPage() {
               R$ {Number(perfil.plano.valorMensal).toFixed(2)}/mês · R$ {Number(perfil.plano.valorAnual).toFixed(2)}/ano
             </p>
           )}
-          <button type="button" disabled className="mt-4 rounded-lg bg-secondary/40 px-4 py-2 text-sm font-bold text-primary/60" title="Disponível em breve">
-            Trocar plano (em breve)
+          <button type="button" onClick={() => setModalPlano(true)} className="mt-4 rounded-lg bg-secondary px-4 py-2 text-sm font-bold text-primary hover:bg-secondary/90">
+            Trocar plano
           </button>
         </div>
 
@@ -205,6 +207,19 @@ export function PerfilAdvogadoPage() {
           </div>
         )}
       </div>
+
+      <TrocarPlanoModal
+        aberto={modalPlano}
+        onFechar={() => setModalPlano(false)}
+        planoAtualNome={perfil?.plano?.nome}
+        consumo={quota ? { ...quota } : null}
+        onTrocado={() => {
+          Promise.all([advogadosService.meuPerfil(), processosService.quota()]).then(([{ data: p }, { data: q }]) => {
+            aplicarPerfil(p);
+            setQuota(q);
+          });
+        }}
+      />
     </div>
   );
 }

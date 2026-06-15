@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { Modal } from '../../components/Modal';
+import { TrocarPlanoModal } from '../../components/TrocarPlanoModal';
 import { Pagination } from '../../components/Pagination';
 import { EmptyState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
@@ -37,6 +38,7 @@ export function OportunidadesPage() {
 
   // modal de proposta
   const [modalProcesso, setModalProcesso] = useState<ProcessoAberto | null>(null);
+  const [modalCota, setModalCota] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const [valor, setValor] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -116,12 +118,17 @@ export function OportunidadesPage() {
 
       <div className="mx-auto max-w-6xl px-6 py-6">
         {quota && (
-          <div className={`mb-6 rounded-2xl border px-5 py-4 ${quotaCor}`}>
-            <p className="text-xs font-bold uppercase tracking-wider">Plano {quota.plano}</p>
-            <p className="font-bold">
-              {quota.limite === null ? `${quota.usadas} propostas neste mês · ilimitado` : `${quota.usadas} / ${quota.limite} propostas usadas · ${quota.restantes} restantes`}
-            </p>
-          </div>
+          <button type="button" onClick={() => setModalCota(true)} className={`mb-6 block w-full rounded-2xl border px-5 py-4 text-left ${quotaCor}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider">Plano {quota.plano}</p>
+                <p className="font-bold">
+                  {quota.limite === null ? `${quota.usadas} propostas neste mês · ilimitado` : `${quota.usadas} / ${quota.limite} propostas usadas · ${quota.restantes} restantes`}
+                </p>
+              </div>
+              <span className="text-xs font-semibold underline">Gerenciar plano ›</span>
+            </div>
+          </button>
         )}
 
         {/* Filtros compostos com Aplicar (advogado) */}
@@ -197,6 +204,14 @@ export function OportunidadesPage() {
           </div>
         </form>
       </Modal>
+
+      <TrocarPlanoModal
+        aberto={modalCota}
+        onFechar={() => setModalCota(false)}
+        planoAtualNome={quota?.plano}
+        consumo={quota}
+        onTrocado={carregarQuota}
+      />
     </div>
   );
 }

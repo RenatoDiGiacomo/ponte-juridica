@@ -17,6 +17,7 @@ import { UsuarioAtual } from '../common/decorators/usuario-atual.decorator';
 import {
   AtualizarPerfilAdvogadoDto,
   AdicionarAreaDto,
+  TrocarPlanoDto,
 } from './dto/atualizar-perfil-advogado.dto';
 import { BuscarAdvogadosQueryDto } from './dto/buscar-advogados-query.dto';
 
@@ -62,6 +63,14 @@ export class AdvogadosController {
   @ApiOperation({ summary: 'Remover área de atuação do próprio perfil' })
   removerArea(@UsuarioAtual() u: { id: number }, @Param('areaId', ParseIntPipe) areaId: number) {
     return this.advogados.removerArea(u.id, areaId);
+  }
+
+  @Patch('perfil/plano')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Trocar o próprio plano (efetiva; cota recalcula)' })
+  trocarPlano(@UsuarioAtual() u: { id: number }, @Body() dto: TrocarPlanoDto) {
+    return this.advogados.trocarPlano(u.id, dto.planoId);
   }
 
   @Get('buscar')

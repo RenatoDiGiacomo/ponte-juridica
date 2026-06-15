@@ -32,3 +32,9 @@ export class AdicionarAreaDto {
   @IsInt()
   areaId!: number;
 }
+
+export class TrocarPlanoDto {
+  @ApiProperty({ example: 2 })
+  @IsInt()
+  planoId!: number;
+}
