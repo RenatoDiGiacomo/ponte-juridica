@@ -1,5 +1,6 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SELECT_ADVOGADO_DTO, toAdvogadoContato } from '../advogados/dto/advogado-response.dto';
 
 @Injectable()
 export class ConexoesService {
@@ -18,13 +19,18 @@ export class ConexoesService {
     });
   }
 
-  minhasConexoes(clienteId: number) {
-    return this.prisma.clienteAdvogado.findMany({
+  /** Advogados vinculados COM contatos (escopo de vínculo — NFR3). */
+  async minhasConexoes(clienteId: number) {
+    const rows = await this.prisma.clienteAdvogado.findMany({
       where: { clienteId, softDelete: false },
-      include: {
-        advogado: { select: { id: true, nome: true, especializacao: true, oab: true } },
-      },
+      orderBy: { dataVinculo: 'desc' },
+      include: { advogado: { select: SELECT_ADVOGADO_DTO } },
     });
+    return rows.map((r) => ({
+      id: r.id,
+      dataVinculo: r.dataVinculo,
+      advogado: toAdvogadoContato(r.advogado),
+    }));
   }
 
   meusClientes(advogadoId: number) {

@@ -113,6 +113,13 @@ export function MinhasConexoesPage() {
                       </span>
                     </div>
 
+                    {/* Contatos (C5) — visíveis por haver vínculo */}
+                    <div className="space-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      <p className="truncate">✉️ {adv?.email}</p>
+                      {adv?.telefone && <p>📞 {adv.telefone}</p>}
+                      {adv?.whatsapp && <p>💬 {adv.whatsapp}</p>}
+                    </div>
+
                     <div className="flex gap-2 pt-1">
                       <a
                         href={`mailto:${adv?.email}`}
