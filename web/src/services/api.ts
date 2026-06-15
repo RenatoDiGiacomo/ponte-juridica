@@ -60,4 +60,7 @@ export const processosService = {
     data: { mensagem: string; valorEstimado: number },
   ) => api.post(`/processos/${processoId}/propostas`, data),
   quota: () => api.get<{ plano: string; limite: number | null; usadas: number; restantes: number | null }>('/propostas/quota'),
+  meusCasosAdvogado: () => api.get('/processos/advogado/meus-casos'),
+  adicionarRelatorio: (processoId: number, texto: string) =>
+    api.post(`/processos/${processoId}/relatorios`, { texto }),
 };

@@ -251,4 +251,36 @@ export class ProcessosService {
       data: { status: 'encerrado' },
     });
   }
+
+  /** Casos em que o advogado está envolvido (enviou proposta), com sua proposta e o histórico de relatórios. */
+  meusCasosAdvogado(advogadoId: number) {
+    return this.prisma.processo.findMany({
+      where: { softDelete: false, propostas: { some: { advogadoId, softDelete: false } } },
+      orderBy: { dataCriacao: 'desc' },
+      include: {
+        cliente: { select: { id: true, nome: true } },
+        propostas: {
+          where: { advogadoId, softDelete: false },
+          select: { id: true, status: true, valorEstimado: true },
+        },
+        relatorios: {
+          where: { softDelete: false },
+          orderBy: { dataCriacao: 'desc' },
+          include: { advogado: { select: { nome: true } } },
+        },
+      },
+    });
+  }
+
+  /** Registra um relatório de situação. Só o advogado responsável (proposta aceita) pode. */
+  async adicionarRelatorio(processoId: number, advogadoId: number, texto: string) {
+    const responsavel = await this.prisma.proposta.findFirst({
+      where: { processoId, advogadoId, status: 'aceita', softDelete: false },
+    });
+    if (!responsavel)
+      throw new ForbiddenException('Apenas o advogado responsável pode registrar relatórios');
+    return this.prisma.relatorioCaso.create({
+      data: { processoId, advogadoId, texto },
+    });
+  }
 }

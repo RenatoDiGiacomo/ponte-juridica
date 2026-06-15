@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { ProcessosService } from './processos.service';
 import { CriarProcessoDto } from './dto/criar-processo.dto';
 import { CriarPropostaDto } from './dto/criar-proposta.dto';
+import { CriarRelatorioDto } from './dto/criar-relatorio.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsuarioAtual } from '../common/decorators/usuario-atual.decorator';
 
@@ -115,5 +116,23 @@ export class ProcessosController {
   @ApiOperation({ summary: 'Encerrar caso (cliente dono OU advogado responsável)' })
   encerrar(@UsuarioAtual() u: Usuario, @Param('id', ParseIntPipe) id: number) {
     return this.processos.encerrarCaso(id, u);
+  }
+
+  @Get('processos/advogado/meus-casos')
+  @ApiOperation({ summary: 'Casos em que o advogado logado está envolvido (com relatórios)' })
+  meusCasosAdvogado(@UsuarioAtual() u: Usuario) {
+    exigirAdvogado(u);
+    return this.processos.meusCasosAdvogado(u.id);
+  }
+
+  @Post('processos/:id/relatorios')
+  @ApiOperation({ summary: 'Advogado responsável registra um relatório de situação' })
+  criarRelatorio(
+    @UsuarioAtual() u: Usuario,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CriarRelatorioDto,
+  ) {
+    exigirAdvogado(u);
+    return this.processos.adicionarRelatorio(id, u.id, dto.texto);
   }
 }

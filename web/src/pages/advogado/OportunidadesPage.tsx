@@ -4,6 +4,7 @@ import { Navbar } from '../../components/Navbar';
 
 const NAV = [
   { label: 'Oportunidades', to: '/' },
+  { label: 'Meus Casos', to: '/meus-casos' },
   { label: 'Meus Clientes', to: '/meus-clientes' },
   { label: 'Meu Perfil', to: '/perfil' },
 ];

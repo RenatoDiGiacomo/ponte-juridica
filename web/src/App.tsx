@@ -10,6 +10,7 @@ import { PerfilClientePage } from './pages/cliente/PerfilClientePage';
 import { OportunidadesPage } from './pages/advogado/OportunidadesPage';
 import { MeusClientesPage } from './pages/advogado/MeusClientesPage';
 import { PerfilAdvogadoPage } from './pages/advogado/PerfilAdvogadoPage';
+import { MeusCasosAdvogadoPage } from './pages/advogado/MeusCasosAdvogadoPage';
 
 function AppRoutes() {
   const { token, tipo, isLoading } = useAuth();
@@ -45,6 +46,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/" element={<OportunidadesPage />} />
+        <Route path="/meus-casos" element={<MeusCasosAdvogadoPage />} />
         <Route path="/meus-clientes" element={<MeusClientesPage />} />
         <Route path="/perfil" element={<PerfilAdvogadoPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
