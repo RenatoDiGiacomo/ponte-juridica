@@ -59,7 +59,8 @@ export const planosService = {
 export const conexoesService = {
   conectar: (advogadoId: number) => api.post(`/conexoes/${advogadoId}`),
   minhas: () => api.get('/conexoes'),
-  meusClientes: () => api.get('/conexoes/clientes'),
+  meusClientes: (params: { busca?: string; page: number; pageSize: number }, signal?: AbortSignal) =>
+    api.get('/conexoes/clientes', { params, signal }),
   remover: (id: number) => api.delete(`/conexoes/${id}`),
 };
 

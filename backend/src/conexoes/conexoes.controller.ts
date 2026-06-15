@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Delete, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ConexoesService } from './conexoes.service';
+import { MeusClientesQueryDto } from './dto/meus-clientes-query.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsuarioAtual } from '../common/decorators/usuario-atual.decorator';
 
@@ -27,9 +28,9 @@ export class ConexoesController {
   }
 
   @Get('clientes')
-  @ApiOperation({ summary: 'Listar clientes vinculados ao advogado logado' })
-  meusClientes(@UsuarioAtual() usuario: { id: number }) {
-    return this.conexoes.meusClientes(usuario.id);
+  @ApiOperation({ summary: 'Listar clientes vinculados (busca por nome/CPF, paginado)' })
+  meusClientes(@UsuarioAtual() usuario: { id: number }, @Query() q: MeusClientesQueryDto) {
+    return this.conexoes.meusClientes(usuario.id, q);
   }
 
   @Delete(':id')
