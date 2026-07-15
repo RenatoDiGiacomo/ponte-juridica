@@ -148,12 +148,6 @@ export function OportunidadesPage() {
                 Limpar
               </button>
             )}
-            <div className="flex items-center gap-2 text-xs text-blue-200">
-              Exibir:
-              <select aria-label="Quantidade por página" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} className={INPUT_ESCURO}>
-                {QTDS.map((q) => <option key={q} value={q} className="text-slate-800">{q}</option>)}
-              </select>
-            </div>
           </div>
         </div>
       </div>
@@ -173,7 +167,17 @@ export function OportunidadesPage() {
           </button>
         )}
 
-        {!loading && <p className="mb-4 text-sm text-slate-500"><span className="font-bold text-slate-800">{total}</span> {total === 1 ? 'caso' : 'casos'}</p>}
+        {!loading && (
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-500"><span className="font-bold text-slate-800">{total}</span> {total === 1 ? 'caso' : 'casos'}</p>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              Exibir:
+              <select aria-label="Quantidade por página" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} className="min-h-9 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-600">
+                {QTDS.map((q) => <option key={q} value={q}>{q}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <p className="py-16 text-center text-sm text-slate-400">Carregando...</p>
