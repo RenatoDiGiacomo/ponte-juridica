@@ -33,6 +33,15 @@ export class ConexoesController {
     return this.conexoes.meusClientes(usuario.id, q);
   }
 
+  @Get('clientes/:id')
+  @ApiOperation({ summary: 'Detalhe de um cliente vinculado (contato + casos compartilhados)' })
+  detalheCliente(
+    @UsuarioAtual() usuario: { id: number },
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.conexoes.detalheCliente(usuario.id, id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Remover vínculo (soft delete)' })
   desconectar(@Param('id', ParseIntPipe) id: number) {

@@ -135,4 +135,22 @@ export class ProcessosController {
     exigirAdvogado(u);
     return this.processos.adicionarRelatorio(id, u.id, dto.texto);
   }
+
+  @Patch('relatorios/:id')
+  @ApiOperation({ summary: 'Advogado autor edita o texto de um relatório' })
+  editarRelatorio(
+    @UsuarioAtual() u: Usuario,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CriarRelatorioDto,
+  ) {
+    exigirAdvogado(u);
+    return this.processos.editarRelatorio(id, u.id, dto.texto);
+  }
+
+  @Delete('relatorios/:id')
+  @ApiOperation({ summary: 'Advogado autor remove (soft delete) um relatório' })
+  removerRelatorio(@UsuarioAtual() u: Usuario, @Param('id', ParseIntPipe) id: number) {
+    exigirAdvogado(u);
+    return this.processos.removerRelatorio(id, u.id);
+  }
 }

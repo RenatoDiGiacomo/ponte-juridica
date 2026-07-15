@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SELECT_ADVOGADO_DTO, toAdvogadoContato } from '../advogados/dto/advogado-response.dto';
@@ -62,6 +62,70 @@ export class ConexoesService {
       }),
     ]);
     return paginated(rows, total, { page: q.page, pageSize: q.pageSize });
+  }
+
+  /**
+   * Detalhe de um cliente vinculado ao advogado (escopo de vínculo — NFR3).
+   * Retorna contato + endereço resumido + os casos compartilhados (onde o advogado
+   * enviou proposta). NÃO expõe documento (CPF/CNPJ) — privacidade.
+   */
+  async detalheCliente(advogadoId: number, clienteId: number) {
+    const vinculo = await this.prisma.clienteAdvogado.findFirst({
+      where: { advogadoId, clienteId, softDelete: false },
+      orderBy: { dataVinculo: 'asc' },
+    });
+    if (!vinculo)
+      throw new ForbiddenException('Cliente não vinculado a você');
+
+    const cliente = await this.prisma.cliente.findFirst({
+      where: { id: clienteId, softDelete: false },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        telefone: true,
+        enderecoCidade: true,
+        enderecoEstado: true,
+        dataCadastro: true,
+      },
+    });
+    if (!cliente) throw new ForbiddenException('Cliente não encontrado');
+
+    // Casos compartilhados: do cliente, onde ESTE advogado enviou proposta.
+    const casos = await this.prisma.processo.findMany({
+      where: {
+        clienteId,
+        softDelete: false,
+        propostas: { some: { advogadoId, softDelete: false } },
+      },
+      orderBy: { dataCriacao: 'desc' },
+      select: {
+        id: true,
+        titulo: true,
+        especializacao: true,
+        status: true,
+        dataCriacao: true,
+        propostas: {
+          where: { advogadoId, softDelete: false },
+          select: { status: true, valorEstimado: true },
+        },
+      },
+    });
+
+    return {
+      ...cliente,
+      vinculadoDesde: vinculo.dataVinculo,
+      casos: casos.map((c) => ({
+        id: c.id,
+        titulo: c.titulo,
+        especializacao: c.especializacao,
+        status: c.status,
+        dataCriacao: c.dataCriacao,
+        minhaProposta: c.propostas[0]
+          ? { status: c.propostas[0].status, valorEstimado: c.propostas[0].valorEstimado }
+          : null,
+      })),
+    };
   }
 
   async desconectar(id: number) {

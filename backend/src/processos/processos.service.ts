@@ -93,6 +93,23 @@ export class ProcessosService {
     });
     const minhasAreas = vinculos.map((v) => v.area.nome);
 
+    // Faixa de data: dataDe/dataAte (intervalo explícito) tem prioridade sobre postadoDias.
+    let dataCriacao: Prisma.DateTimeFilter | undefined;
+    if (q.dataDe || q.dataAte) {
+      dataCriacao = {};
+      if (q.dataDe) dataCriacao.gte = new Date(q.dataDe);
+      if (q.dataAte) {
+        // inclui o dia inteiro do "até"
+        const ate = new Date(q.dataAte);
+        ate.setHours(23, 59, 59, 999);
+        dataCriacao.lte = ate;
+      }
+    } else if (q.postadoDias) {
+      dataCriacao = { gte: new Date(Date.now() - q.postadoDias * 86_400_000) };
+    }
+
+    const estados = q.estados?.length ? q.estados : q.estado ? [q.estado] : [];
+
     const where: Prisma.ProcessoWhereInput = {
       softDelete: false,
       status: 'aberto',
@@ -101,11 +118,9 @@ export class ProcessosService {
         : minhasAreas.length
           ? { especializacao: { in: minhasAreas } }
           : {}),
-      ...(q.estado && { estado: q.estado }),
+      ...(estados.length && { estado: { in: estados } }),
       ...(q.cidade && { cidade: { contains: q.cidade } }),
-      ...(q.postadoDias && {
-        dataCriacao: { gte: new Date(Date.now() - q.postadoDias * 86_400_000) },
-      }),
+      ...(dataCriacao && { dataCriacao }),
     };
 
     const [total, casos] = await this.prisma.$transaction([
@@ -303,6 +318,35 @@ export class ProcessosService {
       throw new ForbiddenException('Apenas o advogado responsável pode registrar relatórios');
     return this.prisma.relatorioCaso.create({
       data: { processoId, advogadoId, texto },
+    });
+  }
+
+  /** Busca um relatório garantindo que pertence ao advogado (autoria). */
+  private async relatorioDoAutor(relatorioId: number, advogadoId: number) {
+    const relatorio = await this.prisma.relatorioCaso.findFirst({
+      where: { id: relatorioId, softDelete: false },
+    });
+    if (!relatorio) throw new NotFoundException('Relatório não encontrado');
+    if (relatorio.advogadoId !== advogadoId)
+      throw new ForbiddenException('Você só pode alterar os próprios relatórios');
+    return relatorio;
+  }
+
+  /** Edita o texto de um relatório. Só o advogado autor pode. */
+  async editarRelatorio(relatorioId: number, advogadoId: number, texto: string) {
+    await this.relatorioDoAutor(relatorioId, advogadoId);
+    return this.prisma.relatorioCaso.update({
+      where: { id: relatorioId },
+      data: { texto },
+    });
+  }
+
+  /** Remove (soft delete) um relatório. Só o advogado autor pode. */
+  async removerRelatorio(relatorioId: number, advogadoId: number) {
+    await this.relatorioDoAutor(relatorioId, advogadoId);
+    return this.prisma.relatorioCaso.update({
+      where: { id: relatorioId },
+      data: { softDelete: true },
     });
   }
 }

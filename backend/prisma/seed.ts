@@ -1,242 +1,462 @@
 import 'dotenv/config';
-import { Cliente, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Utilidades de aleatoriedade (seed roda em Node; Math.random é aceitável aqui)
+// ─────────────────────────────────────────────────────────────────────────────
+const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = <T>(arr: readonly T[]): T => arr[randInt(0, arr.length - 1)];
+const chance = (p: number) => Math.random() < p;
+function pickN<T>(arr: readonly T[], n: number): T[] {
+  const copia = [...arr];
+  const out: T[] = [];
+  while (out.length < n && copia.length) out.push(copia.splice(randInt(0, copia.length - 1), 1)[0]);
+  return out;
+}
+const diasAtras = (d: number) => new Date(Date.now() - d * 86_400_000);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pools de dados fictícios (acentuação correta)
+// ─────────────────────────────────────────────────────────────────────────────
+const AREAS = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'] as const;
+
+const CIDADES_POR_UF: Record<string, string[]> = {
+  SP: ['São Paulo', 'Campinas', 'Santos', 'Guarulhos', 'Osasco', 'Ribeirão Preto', 'Sorocaba'],
+  RJ: ['Rio de Janeiro', 'Niterói', 'Nova Iguaçu', 'Duque de Caxias', 'Petrópolis'],
+  MG: ['Belo Horizonte', 'Uberlândia', 'Contagem', 'Juiz de Fora', 'Betim'],
+  RS: ['Porto Alegre', 'Caxias do Sul', 'Pelotas', 'Canoas', 'Santa Maria'],
+  BA: ['Salvador', 'Feira de Santana', 'Vitória da Conquista', 'Camaçari'],
+  PR: ['Curitiba', 'Londrina', 'Maringá', 'Ponta Grossa'],
+  SC: ['Florianópolis', 'Joinville', 'Blumenau', 'Chapecó'],
+  DF: ['Brasília'],
+  PE: ['Recife', 'Olinda', 'Caruaru', 'Jaboatão dos Guararapes'],
+  CE: ['Fortaleza', 'Caucaia', 'Juazeiro do Norte'],
+};
+const UFS = Object.keys(CIDADES_POR_UF);
+const cidadeDaUf = (uf: string) => pick(CIDADES_POR_UF[uf]);
+
+const PRIMEIROS_M = ['Carlos', 'Roberto', 'Felipe', 'Marcos', 'Rafael', 'Bruno', 'Thiago', 'Rodrigo', 'André', 'Gustavo', 'Ricardo', 'Fernando', 'Eduardo', 'Paulo', 'Lucas', 'Vinícius', 'Daniel', 'Marcelo'];
+const PRIMEIROS_F = ['Maria', 'Ana', 'Juliana', 'Luciana', 'Fernanda', 'Patrícia', 'Camila', 'Beatriz', 'Larissa', 'Renata', 'Cláudia', 'Adriana', 'Débora', 'Vanessa', 'Aline', 'Priscila', 'Carolina', 'Mariana'];
+const SOBRENOMES = ['Silva', 'Souza', 'Oliveira', 'Ferreira', 'Costa', 'Rodrigues', 'Almeida', 'Nascimento', 'Lima', 'Araújo', 'Mendes', 'Barbosa', 'Ribeiro', 'Carvalho', 'Gomes', 'Martins', 'Rocha', 'Cavalcanti', 'Moreira', 'Azevedo', 'Cardoso', 'Teixeira'];
+
+// Templates de caso por área (título + descrição, acentuação correta)
+const CASOS_POR_AREA: Record<string, { titulo: string; descricao: string }[]> = {
+  Trabalhista: [
+    { titulo: 'Rescisão indireta por atraso de salário', descricao: 'Trabalho há alguns anos numa empresa que vem atrasando salários por meses consecutivos. Tenho holerites e mensagens do RH. Quero saber se cabe rescisão indireta com pedido de tutela de urgência.' },
+    { titulo: 'Horas extras não pagas e banco de horas irregular', descricao: 'Faço em média duas horas extras por dia que nunca foram quitadas. O banco de horas nunca foi compensado. Tenho registros de ponto e testemunhas.' },
+    { titulo: 'Reconhecimento de vínculo empregatício (PJ)', descricao: 'Fui contratado como PJ mas cumpria horário, tinha subordinação e exclusividade. Quero reconhecer o vínculo e receber as verbas rescisórias devidas.' },
+    { titulo: 'Assédio moral e demissão discriminatória', descricao: 'Sofri assédio moral reiterado da chefia e fui demitido após reportar. Busco reparação por danos morais e reintegração.' },
+    { titulo: 'Acúmulo de função sem adicional', descricao: 'Exerço duas funções distintas desde a saída de um colega, sem qualquer adicional. Quero pleitear o pagamento retroativo do acúmulo de função.' },
+  ],
+  Família: [
+    { titulo: 'Divórcio consensual com partilha de imóvel', descricao: 'Casamento sem filhos, com imóvel financiado em conjunto e um carro. Já temos acordo verbal sobre a divisão. Procuro orientação para formalizar o divórcio consensual.' },
+    { titulo: 'Guarda compartilhada e regulamentação de visitas', descricao: 'Estou me separando e temos dois filhos menores. Quero definir guarda compartilhada e um regime de convivência equilibrado.' },
+    { titulo: 'Ação de alimentos e revisão de pensão', descricao: 'A pensão fixada há anos não acompanha as despesas atuais das crianças. Preciso de ação revisional de alimentos.' },
+    { titulo: 'Reconhecimento e dissolução de união estável', descricao: 'Convivemos por vários anos como companheiros e agora nos separamos. Quero reconhecer a união estável e partilhar os bens adquiridos.' },
+    { titulo: 'Inventário e partilha de herança', descricao: 'Meu pai faleceu deixando imóveis e contas bancárias. Somos três herdeiros. Preciso conduzir o inventário e a partilha.' },
+  ],
+  Criminal: [
+    { titulo: 'Defesa em processo por furto qualificado', descricao: 'Familiar foi indiciado em inquérito por furto qualificado. Preciso de defesa técnica para a fase de instrução. Audiência marcada para o próximo mês.' },
+    { titulo: 'Pedido de liberdade provisória', descricao: 'Meu irmão está preso preventivamente por acusação que consideramos frágil. Buscamos relaxamento da prisão ou liberdade provisória.' },
+    { titulo: 'Defesa em ação por lesão corporal', descricao: 'Respondo a processo por lesão corporal em contexto de legítima defesa. Preciso de assistência para demonstrar a excludente de ilicitude.' },
+    { titulo: 'Revisão criminal de condenação', descricao: 'Fui condenado com base em prova que hoje se mostra inconsistente. Quero avaliar cabimento de revisão criminal.' },
+    { titulo: 'Acompanhamento em inquérito por estelionato', descricao: 'Fui intimado a prestar depoimento em inquérito por suposto estelionato. Preciso de acompanhamento e orientação desde a fase policial.' },
+  ],
+  Previdenciário: [
+    { titulo: 'Revisão de aposentadoria por tempo de contribuição', descricao: 'Aposentei-me recentemente mas acredito que houve erro no cálculo do INSS. Tenho o CNIS completo e a carta de concessão. Quero analisar se cabe revisão.' },
+    { titulo: 'Concessão de auxílio-doença negado', descricao: 'Tive o auxílio-doença indeferido apesar dos laudos médicos que comprovam a incapacidade. Quero recorrer administrativamente ou judicialmente.' },
+    { titulo: 'Aposentadoria especial por insalubridade', descricao: 'Trabalhei anos exposto a agentes nocivos e tenho PPP e LTCAT. Busco reconhecimento do tempo especial para aposentadoria.' },
+    { titulo: 'Pensão por morte indeferida', descricao: 'Tive a pensão por morte do meu companheiro negada por suposta falta de comprovação de dependência. Tenho documentos que comprovam a união.' },
+    { titulo: 'Benefício assistencial (LOAS) ao idoso', descricao: 'Minha mãe idosa, de baixa renda, teve o BPC/LOAS negado. Precisamos reverter o indeferimento.' },
+  ],
+  Cível: [
+    { titulo: 'Cobrança indevida de tarifa bancária', descricao: 'O banco cobra tarifa de pacote que cancelei há mais de um ano. Já tentei resolver pelo SAC sem sucesso. Pretendo ação de repetição de indébito com danos morais.' },
+    { titulo: 'Rescisão de contrato e devolução de valores', descricao: 'Contratei um serviço que não foi prestado e a empresa se recusa a devolver os valores pagos. Quero rescindir o contrato e ser ressarcido.' },
+    { titulo: 'Ação de despejo por falta de pagamento', descricao: 'Sou locador e o inquilino está inadimplente há vários meses. Preciso da ação de despejo cumulada com cobrança dos aluguéis.' },
+    { titulo: 'Indenização por negativação indevida', descricao: 'Meu nome foi negativado por dívida já quitada. Sofri restrição de crédito e busco a exclusão do apontamento e indenização.' },
+    { titulo: 'Vício em produto e responsabilidade do fornecedor', descricao: 'Comprei um eletrodoméstico que apresentou defeito dentro da garantia e a assistência não resolveu. Quero a troca ou a restituição.' },
+  ],
+  Tributário: [
+    { titulo: 'Repetição de indébito de ICMS na base do PIS/COFINS', descricao: 'Minha empresa recolheu tributos a maior por incluir o ICMS na base do PIS/COFINS. Quero recuperar os valores dos últimos cinco anos.' },
+    { titulo: 'Exclusão de multa e juros em execução fiscal', descricao: 'Estou sendo executado por débito tributário com multa e juros que julgo indevidos. Preciso de defesa em embargos à execução.' },
+    { titulo: 'Parcelamento e regularização de débitos fiscais', descricao: 'A empresa acumulou débitos federais e quero avaliar o melhor programa de parcelamento para regularizar a situação.' },
+    { titulo: 'Restituição de Imposto de Renda retido a maior', descricao: 'Houve retenção de IR a maior sobre verbas de natureza indenizatória. Quero pleitear a restituição do valor.' },
+    { titulo: 'Impugnação de auto de infração municipal', descricao: 'Recebi auto de infração de ISS que considero equivocado quanto à base de cálculo. Preciso impugnar administrativamente.' },
+  ],
+};
+
+const RELATORIOS = [
+  'Petição inicial protocolada; aguardando análise do juízo.',
+  'Realizada audiência de conciliação; não houve acordo. Processo segue para a fase de instrução.',
+  'Juntada de documentos complementares e procuração. Aguardando despacho do magistrado.',
+  'Contestação apresentada pela parte contrária; em curso o prazo para réplica.',
+  'Sentença publicada favoravelmente ao cliente. Avaliando eventual recurso da parte adversa.',
+  'Interposto recurso de apelação; autos remetidos ao tribunal para julgamento.',
+  'Cálculos de liquidação apresentados; aguardando homologação pelo juízo.',
+  'Acordo homologado em juízo; iniciada a fase de cumprimento de sentença.',
+  'Perícia designada; nomeado o perito e apresentados os quesitos das partes.',
+  'Expedido alvará de levantamento em favor do cliente.',
+];
+
+const MENSAGENS_PROPOSTA = [
+  'Olá! Tenho ampla experiência em casos como o seu e posso conduzir sua demanda com atenção. Podemos conversar sobre os próximos passos?',
+  'Analisei seu caso e vejo bons fundamentos. Trabalho com transparência e acompanhamento próximo. Fico à disposição para uma conversa.',
+  'Atuo há anos nessa área e já obtive resultados positivos em situações semelhantes. Podemos agendar uma avaliação detalhada.',
+  'Seu caso tem elementos importantes a explorar. Ofereço atendimento personalizado e comunicação clara durante todo o processo.',
+  'Posso assumir sua causa com dedicação. Explico cada etapa em linguagem simples e mantenho você informado. Vamos alinhar?',
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('Seeding banco de dados...');
+  console.log('Seeding banco de dados (volume alto)...');
 
   const planos = await Promise.all([
-    prisma.plano.upsert({ where: { id: 1 }, update: {}, create: { nome: 'Básico', valorMensal: 99.00, valorAnual: 830.00 } }),
-    prisma.plano.upsert({ where: { id: 2 }, update: {}, create: { nome: 'Profissional', valorMensal: 199.00, valorAnual: 1430.00 } }),
-    prisma.plano.upsert({ where: { id: 3 }, update: {}, create: { nome: 'Elite', valorMensal: 399.00, valorAnual: 2400.00 } }),
+    prisma.plano.upsert({ where: { id: 1 }, update: {}, create: { nome: 'Básico', valorMensal: 99.0, valorAnual: 830.0 } }),
+    prisma.plano.upsert({ where: { id: 2 }, update: {}, create: { nome: 'Profissional', valorMensal: 199.0, valorAnual: 1430.0 } }),
+    prisma.plano.upsert({ where: { id: 3 }, update: {}, create: { nome: 'Elite', valorMensal: 399.0, valorAnual: 2400.0 } }),
   ]);
-  console.log(`✓ ${planos.length} planos criados`);
+  console.log(`✓ ${planos.length} planos`);
+
+  const areas = await Promise.all(AREAS.map((nome) => prisma.area.upsert({ where: { nome }, update: {}, create: { nome } })));
+  const areaPorNome = new Map(areas.map((a) => [a.nome, a.id]));
+  console.log(`✓ ${areas.length} áreas`);
 
   const senhaDemo = await bcrypt.hash('senha123', 10);
 
-  const advogados = [
-    { nome: 'Dra. Maria Ferreira', email: 'maria.demo@pontejuridica.com', oab: '00001/SP', area: 'Trabalhista', planoId: 2, nota: 4.8, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0001', whatsapp: '(11) 99000-0001' },
-    { nome: 'Dr. Carlos Mendes', email: 'carlos@pontejuridica.com', oab: '00002/SP', area: 'Criminal', planoId: 3, nota: 4.5, estadoAtuacao: 'SP', cidadeAtuacao: 'Campinas', telefone: '(19) 3000-0002', whatsapp: '(19) 99000-0002' },
-    { nome: 'Dra. Ana Paula Lima', email: 'ana@pontejuridica.com', oab: '00003/RJ', area: 'Família', planoId: 2, nota: 4.9, estadoAtuacao: 'RJ', cidadeAtuacao: 'Rio de Janeiro', telefone: '(21) 3000-0003', whatsapp: '(21) 99000-0003' },
-    { nome: 'Dr. Roberto Alves', email: 'roberto@pontejuridica.com', oab: '00004/MG', area: 'Tributário', planoId: 3, nota: 4.2, estadoAtuacao: 'MG', cidadeAtuacao: 'Belo Horizonte', telefone: '(31) 3000-0004', whatsapp: '(31) 99000-0004' },
-    { nome: 'Dra. Juliana Costa', email: 'juliana@pontejuridica.com', oab: '00005/SP', area: 'Cível', planoId: 1, nota: 3.9, estadoAtuacao: 'SP', cidadeAtuacao: 'Santos', telefone: '(13) 3000-0005', whatsapp: '(13) 99000-0005' },
-    { nome: 'Dr. Felipe Santos', email: 'felipe@pontejuridica.com', oab: '00006/RS', area: 'Previdenciário', planoId: 2, nota: 4.8, estadoAtuacao: 'RS', cidadeAtuacao: 'Porto Alegre', telefone: '(51) 3000-0006', whatsapp: '(51) 99000-0006' },
-    { nome: 'Dra. Luciana Prado', email: 'luciana@pontejuridica.com', oab: '00007/SP', area: 'Trabalhista', planoId: 3, nota: 4.6, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo', telefone: '(11) 3000-0007', whatsapp: '(11) 99000-0007' },
-    { nome: 'Dr. Marcos Oliveira', email: 'marcos@pontejuridica.com', oab: '00008/BA', area: 'Criminal', planoId: 1, nota: 4.1, estadoAtuacao: 'BA', cidadeAtuacao: 'Salvador', telefone: '(71) 3000-0008', whatsapp: '(71) 99000-0008' },
-  ];
+  // ── Advogados ────────────────────────────────────────────────────────────
+  const TOTAL_ADV = 80;
+  const advData: {
+    nome: string; email: string; senha: string; oab: string; planoId: number;
+    nota: number; estadoAtuacao: string; cidadeAtuacao: string; telefone: string; whatsapp: string;
+    areaPrincipal: string; segundaArea?: string;
+  }[] = [];
 
-  for (const adv of advogados) {
-    const { area: _area, ...dadosAdv } = adv; // `area` é só p/ o mapeamento N:N, não é coluna
-    await prisma.advogado.upsert({
-      where: { email: adv.email },
-      // atualiza os campos ricos também em advogados já seedados (idempotente)
-      update: {
-        nota: adv.nota,
-        estadoAtuacao: adv.estadoAtuacao,
-        cidadeAtuacao: adv.cidadeAtuacao,
-        telefone: adv.telefone,
-        whatsapp: adv.whatsapp,
-      },
-      create: { ...dadosAdv, senha: senhaDemo },
+  // Contas demo estáveis (atalhos de login da demonstração) — sempre nos 1ºs lugares.
+  advData.push(
+    {
+      nome: 'Dra. Maria Ferreira', email: 'maria.demo@pontejuridica.com', senha: senhaDemo,
+      oab: '00001/SP', planoId: 2, nota: 4.8, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo',
+      telefone: '(11) 3000-0001', whatsapp: '(11) 99000-0001',
+      areaPrincipal: 'Trabalhista', segundaArea: 'Previdenciário',
+    },
+    {
+      nome: 'Dr. Carlos Mendes', email: 'carlos.demo@pontejuridica.com', senha: senhaDemo,
+      oab: '00002/SP', planoId: 3, nota: 4.5, estadoAtuacao: 'SP', cidadeAtuacao: 'Campinas',
+      telefone: '(19) 3000-0002', whatsapp: '(19) 99000-0002',
+      areaPrincipal: 'Criminal', segundaArea: 'Cível',
+    },
+    {
+      nome: 'Dra. Juliana Costa', email: 'juliana.demo@pontejuridica.com', senha: senhaDemo,
+      oab: '00003/SP', planoId: 1, nota: 3.9, estadoAtuacao: 'SP', cidadeAtuacao: 'Santos',
+      telefone: '(13) 3000-0003', whatsapp: '(13) 99000-0003',
+      areaPrincipal: 'Cível',
+    },
+  );
+
+  const emailsUsados = new Set(advData.map((a) => a.email));
+  for (let i = advData.length; i < TOTAL_ADV; i++) {
+    const fem = chance(0.5);
+    const primeiro = fem ? pick(PRIMEIROS_F) : pick(PRIMEIROS_M);
+    const sobrenome = pick(SOBRENOMES);
+    const prefixo = fem ? 'Dra.' : 'Dr.';
+    let email = `${primeiro}.${sobrenome}${i}`.toLowerCase().normalize('NFD').replace(/[0300-036f]/g, '') + '@pontejuridica.com';
+    while (emailsUsados.has(email)) email = `adv${i}.${Math.random().toString(36).slice(2, 6)}@pontejuridica.com`;
+    emailsUsados.add(email);
+    const uf = pick(UFS);
+    const areaPrincipal = pick(AREAS);
+    const segunda = chance(0.35) ? pick(AREAS.filter((a) => a !== areaPrincipal)) : undefined;
+    advData.push({
+      nome: `${prefixo} ${primeiro} ${sobrenome}`,
+      email,
+      senha: senhaDemo,
+      oab: `${String(i + 1).padStart(5, '0')}/${uf}`,
+      planoId: pick([1, 2, 2, 3]), // profissional mais comum
+      nota: Math.round((3.4 + Math.random() * 1.6) * 10) / 10,
+      estadoAtuacao: uf,
+      cidadeAtuacao: cidadeDaUf(uf),
+      telefone: `(${randInt(11, 89)}) 3${randInt(100, 999)}-${randInt(1000, 9999)}`,
+      whatsapp: `(${randInt(11, 89)}) 9${randInt(1000, 9999)}-${randInt(1000, 9999)}`,
+      areaPrincipal,
+      segundaArea: segunda,
     });
   }
-  console.log(`✓ ${advogados.length} advogados criados`);
 
-  // Áreas de atuação (lista controlada) + mapeamento especializacao -> AdvogadoArea (N:N)
-  const AREAS = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
-  const areas = await Promise.all(
-    AREAS.map((nome) =>
-      prisma.area.upsert({ where: { nome }, update: {}, create: { nome } }),
-    ),
-  );
-  const areaPorNome = new Map(areas.map((a) => [a.nome, a.id]));
-  console.log(`✓ ${areas.length} áreas criadas`);
-
-  // Mapas de apoio: email -> id (DB) e email -> área (definida localmente no array acima).
+  await prisma.advogado.createMany({
+    data: advData.map(({ areaPrincipal: _a, segundaArea: _s, ...adv }) => adv),
+    skipDuplicates: true,
+  });
   const advsDb = await prisma.advogado.findMany({ where: { softDelete: false }, select: { id: true, email: true } });
-  const idPorEmail = new Map(advsDb.map((a) => [a.email, a.id]));
-  const areaPorEmail = new Map(advogados.map((a) => [a.email, a.area]));
+  const advIdPorEmail = new Map(advsDb.map((a) => [a.email, a.id]));
+  console.log(`✓ ${advsDb.length} advogados`);
 
-  async function vincularArea(email: string, nomeArea: string) {
-    const advId = idPorEmail.get(email);
-    const areaId = areaPorNome.get(nomeArea);
-    if (!advId || !areaId) return false;
-    await prisma.advogadoArea.upsert({
-      where: { advogadoId_areaId: { advogadoId: advId, areaId } },
-      update: {},
-      create: { advogadoId: advId, areaId },
+  // Áreas de atuação (N:N)
+  const vinculosArea: { advogadoId: number; areaId: number }[] = [];
+  for (const adv of advData) {
+    const id = advIdPorEmail.get(adv.email);
+    if (!id) continue;
+    vinculosArea.push({ advogadoId: id, areaId: areaPorNome.get(adv.areaPrincipal)! });
+    if (adv.segundaArea) vinculosArea.push({ advogadoId: id, areaId: areaPorNome.get(adv.segundaArea)! });
+  }
+  await prisma.advogadoArea.createMany({ data: vinculosArea, skipDuplicates: true });
+  console.log(`✓ ${vinculosArea.length} vínculos advogado-área`);
+
+  // Índice: área -> advogados que atuam nela (para gerar propostas coerentes)
+  const advPorArea = new Map<string, number[]>(AREAS.map((a) => [a, []]));
+  for (const adv of advData) {
+    const id = advIdPorEmail.get(adv.email)!;
+    advPorArea.get(adv.areaPrincipal)!.push(id);
+    if (adv.segundaArea) advPorArea.get(adv.segundaArea)!.push(id);
+  }
+
+  // ── Clientes ─────────────────────────────────────────────────────────────
+  const TOTAL_CLI = 150;
+  const cliData: {
+    nome: string; email: string; senha: string; documento: string; telefone: string;
+    enderecoCidade: string; enderecoEstado: string; dataCadastro: Date;
+  }[] = [];
+
+  cliData.push(
+    {
+      nome: 'João Silva', email: 'cliente.demo@pontejuridica.com', senha: senhaDemo,
+      documento: '000.000.000-00', telefone: '(11) 98888-0000',
+      enderecoCidade: 'São Paulo', enderecoEstado: 'SP', dataCadastro: diasAtras(200),
+    },
+    {
+      nome: 'Mariana Souza', email: 'mariana.demo@pontejuridica.com', senha: senhaDemo,
+      documento: '111.111.111-11', telefone: '(21) 97777-1111',
+      enderecoCidade: 'Rio de Janeiro', enderecoEstado: 'RJ', dataCadastro: diasAtras(180),
+    },
+  );
+
+  const emailsCli = new Set(cliData.map((c) => c.email));
+  for (let i = cliData.length; i < TOTAL_CLI; i++) {
+    const fem = chance(0.5);
+    const primeiro = fem ? pick(PRIMEIROS_F) : pick(PRIMEIROS_M);
+    const sobrenome = `${pick(SOBRENOMES)} ${pick(SOBRENOMES)}`;
+    let email = `${primeiro}.${sobrenome.split(' ')[0]}${i}`.toLowerCase().normalize('NFD').replace(/[0300-036f]/g, '') + '@email.com';
+    while (emailsCli.has(email)) email = `cliente${i}.${Math.random().toString(36).slice(2, 6)}@email.com`;
+    emailsCli.add(email);
+    const uf = pick(UFS);
+    const pf = chance(0.85);
+    cliData.push({
+      nome: `${primeiro} ${sobrenome}`,
+      email,
+      senha: senhaDemo,
+      documento: pf
+        ? `${randInt(100, 999)}.${randInt(100, 999)}.${randInt(100, 999)}-${randInt(10, 99)}`
+        : `${randInt(10, 99)}.${randInt(100, 999)}.${randInt(100, 999)}/0001-${randInt(10, 99)}`,
+      telefone: `(${randInt(11, 89)}) 9${randInt(1000, 9999)}-${randInt(1000, 9999)}`,
+      enderecoCidade: cidadeDaUf(uf),
+      enderecoEstado: uf,
+      dataCadastro: diasAtras(randInt(1, 200)),
     });
+  }
+
+  await prisma.cliente.createMany({ data: cliData, skipDuplicates: true });
+  const clientesDb = await prisma.cliente.findMany({
+    where: { softDelete: false },
+    select: { id: true, enderecoCidade: true, enderecoEstado: true },
+  });
+  console.log(`✓ ${clientesDb.length} clientes`);
+
+  // Cria vínculo cliente↔advogado só se ainda não existir (evita duplicidade).
+  async function garantirVinculo(clienteId: number, advogadoId: number, dataVinculo: Date) {
+    const existe = await prisma.clienteAdvogado.findFirst({ where: { clienteId, advogadoId, softDelete: false } });
+    if (existe) return false;
+    await prisma.clienteAdvogado.create({ data: { clienteId, advogadoId, dataVinculo } });
     return true;
   }
 
-  // Área principal de cada advogado (idempotente).
-  let vinculos = 0;
-  for (const adv of advogados) {
-    if (await vincularArea(adv.email, adv.area)) vinculos++;
-  }
+  // ── Processos + Propostas + Relatórios + Vínculos ──────────────────────────
+  const TOTAL_PROC = 400;
+  let nProp = 0, nRel = 0, nVinc = 0, nAtend = 0, nEncerr = 0;
 
-  // Alguns advogados atuam em mais de uma área (demonstra o N:N e os filtros multi-área).
-  const segundaArea: Record<string, string> = {
-    'maria.demo@pontejuridica.com': 'Previdenciário', // Trabalhista + Previdenciário
-    'felipe@pontejuridica.com': 'Trabalhista',        // Previdenciário + Trabalhista
-    'carlos@pontejuridica.com': 'Cível',              // Criminal + Cível
-  };
-  for (const [email, nomeArea] of Object.entries(segundaArea)) {
-    if (await vincularArea(email, nomeArea)) vinculos++;
-  }
-  console.log(`✓ ${vinculos} vínculos advogado-área criados`);
-
-  const clientesDemo = [
-    { nome: 'João Silva', email: 'cliente.demo@pontejuridica.com', documento: '000.000.000-00' },
-    { nome: 'Mariana Souza', email: 'mariana@pontejuridica.com', documento: '111.111.111-11' },
-    { nome: 'Pedro Henrique', email: 'pedro@pontejuridica.com', documento: '222.222.222-22' },
-  ];
-  const clientes: Cliente[] = [];
-  for (const c of clientesDemo) {
-    clientes.push(
-      await prisma.cliente.upsert({
-        where: { email: c.email },
-        update: {},
-        create: { ...c, senha: senhaDemo },
-      }),
-    );
-  }
-  console.log(`✓ ${clientes.length} clientes criados`);
-
-  const todosAdvogados = await prisma.advogado.findMany({
-    where: { softDelete: false },
-    select: { id: true, nome: true, email: true },
-  });
-
-  const processosDemo = [
-    {
-      cliente: clientes[0],
-      titulo: 'Rescisão indireta — atraso de salário há 4 meses',
-      descricao:
-        'Trabalho há 3 anos numa empresa de logística que está atrasando salários há 4 meses consecutivos. Tenho holerites e prints das mensagens do RH. Quero saber se cabe rescisão indireta com pedido de tutela de urgência.',
-      especializacao: 'Trabalhista',
-      estado: 'SP',
-      cidade: 'São Paulo',
-    },
-    {
-      cliente: clientes[1],
-      titulo: 'Divórcio consensual com partilha de imóvel',
-      descricao:
-        'Casamento de 8 anos, sem filhos, com um imóvel financiado em conjunto e um carro. Já temos acordo verbal sobre a divisão. Procuro orientação para formalizar o divórcio consensual.',
-      especializacao: 'Família',
-      estado: 'RJ',
-      cidade: 'Rio de Janeiro',
-    },
-    {
-      cliente: clientes[2],
-      titulo: 'Defesa em processo criminal — furto qualificado',
-      descricao:
-        'Familiar foi indiciado em inquérito por furto qualificado. Preciso de defesa técnica para a fase de instrução. Audiência marcada para o próximo mês.',
-      especializacao: 'Criminal',
-      estado: 'BA',
-      cidade: 'Salvador',
-    },
-    {
-      cliente: clientes[0],
-      titulo: 'Revisão de aposentadoria por tempo de contribuição',
-      descricao:
-        'Aposentei em 2019 mas acredito que houve erro no cálculo do INSS. Tenho CNIS completo e carta de concessão. Quero analisar se cabe revisão.',
-      especializacao: 'Previdenciário',
-      estado: 'RS',
-      cidade: 'Porto Alegre',
-    },
-    {
-      cliente: clientes[1],
-      titulo: 'Cobrança indevida de tarifa bancária',
-      descricao:
-        'Banco vem cobrando tarifa de pacote de serviços que cancelei há mais de um ano. Já tentei resolver pelo SAC sem sucesso. Pretendo ação de repetição de indébito + danos morais.',
-      especializacao: 'Cível',
-      estado: 'SP',
-      cidade: 'Santos',
-    },
-  ];
-
-  for (const p of processosDemo) {
-    const existente = await prisma.processo.findFirst({
-      where: { titulo: p.titulo, clienteId: p.cliente.id },
-    });
-    if (existente) {
-      // backfill da região em processos já seedados (idempotente)
-      if (!existente.estado) {
-        await prisma.processo.update({
-          where: { id: existente.id },
-          data: { estado: p.estado, cidade: p.cidade },
-        });
-      }
-      continue;
-    }
+  for (let i = 0; i < TOTAL_PROC; i++) {
+    const cli = pick(clientesDb);
+    const area = pick(AREAS);
+    const tpl = pick(CASOS_POR_AREA[area]);
+    // região do caso: normalmente a do cliente, às vezes outra
+    const uf = chance(0.8) && cli.enderecoEstado ? cli.enderecoEstado : pick(UFS);
+    const cidade = chance(0.8) && cli.enderecoCidade && uf === cli.enderecoEstado ? cli.enderecoCidade : cidadeDaUf(uf);
+    const dataCriacao = diasAtras(randInt(0, 180));
 
     const processo = await prisma.processo.create({
       data: {
-        clienteId: p.cliente.id,
-        titulo: p.titulo,
-        descricao: p.descricao,
-        especializacao: p.especializacao,
-        estado: p.estado,
-        cidade: p.cidade,
+        clienteId: cli.id,
+        titulo: tpl.titulo,
+        descricao: tpl.descricao,
+        especializacao: area,
+        estado: uf,
+        cidade,
+        dataCriacao,
       },
     });
 
-    // gera 1-2 propostas por processo (do(s) advogado(s) da área do caso)
-    const candidatos = todosAdvogados.filter((a) => areaPorEmail.get(a.email) === p.especializacao);
-    for (const adv of candidatos.slice(0, 2)) {
-      await prisma.proposta.create({
+    // Candidatos: advogados que atuam na área do caso
+    const candidatos = advPorArea.get(area) ?? [];
+    const qtdProp = candidatos.length ? Math.min(candidatos.length, randInt(0, 6)) : 0;
+    const escolhidos = pickN(candidatos, qtdProp);
+
+    // Distribuição de status do caso
+    const r = Math.random();
+    const alvo: 'aberto' | 'em_atendimento' | 'encerrado' =
+      escolhidos.length === 0 ? 'aberto' : r < 0.55 ? 'aberto' : r < 0.85 ? 'em_atendimento' : 'encerrado';
+
+    const propostasCriadas: { id: number; advogadoId: number }[] = [];
+    for (const advId of escolhidos) {
+      const p = await prisma.proposta.create({
         data: {
           processoId: processo.id,
-          advogadoId: adv.id,
-          mensagem: `Olá, sou ${adv.nome}. Tenho experiência em casos de ${p.especializacao.toLowerCase()} e posso te atender. Vamos conversar?`,
-          valorEstimado: 1500 + Math.floor(Math.random() * 2000),
+          advogadoId: advId,
+          mensagem: pick(MENSAGENS_PROPOSTA),
+          valorEstimado: randInt(80, 240) * 25, // R$ 2.000 – R$ 6.000
+          dataCriacao: new Date(dataCriacao.getTime() + randInt(0, 5) * 86_400_000),
         },
       });
+      propostasCriadas.push({ id: p.id, advogadoId: advId });
+      nProp++;
     }
-  }
-  console.log(`✓ ${processosDemo.length} processos demo + propostas criados`);
 
-  // Marca o primeiro processo como "em atendimento" com proposta aceita +
-  // cria vínculo correspondente — para mostrar o estado pós-aceite na demo.
-  const primeiro = await prisma.processo.findFirst({
-    where: { titulo: processosDemo[0].titulo, softDelete: false },
-    include: { propostas: { where: { softDelete: false }, orderBy: { id: 'asc' } } },
-  });
-  if (primeiro && primeiro.status === 'aberto' && primeiro.propostas.length > 0) {
-    const aceita = primeiro.propostas[0];
-    await prisma.proposta.update({
-      where: { id: aceita.id },
-      data: { status: 'aceita' },
-    });
-    if (primeiro.propostas[1]) {
-      await prisma.proposta.update({
-        where: { id: primeiro.propostas[1].id },
+    if (alvo !== 'aberto' && propostasCriadas.length) {
+      const aceita = pick(propostasCriadas);
+      await prisma.proposta.update({ where: { id: aceita.id }, data: { status: 'aceita' } });
+      await prisma.proposta.updateMany({
+        where: { processoId: processo.id, id: { not: aceita.id } },
         data: { status: 'recusada' },
       });
+      await prisma.processo.update({ where: { id: processo.id }, data: { status: alvo } });
+
+      // Vínculo cliente ↔ advogado responsável
+      if (await garantirVinculo(cli.id, aceita.advogadoId, new Date(dataCriacao.getTime() + 3 * 86_400_000))) nVinc++;
+
+      // Relatórios de situação do responsável
+      const qtdRel = alvo === 'encerrado' ? randInt(2, 5) : randInt(1, 3);
+      for (let k = 0; k < qtdRel; k++) {
+        await prisma.relatorioCaso.create({
+          data: {
+            processoId: processo.id,
+            advogadoId: aceita.advogadoId,
+            texto: pick(RELATORIOS),
+            dataCriacao: new Date(dataCriacao.getTime() + (5 + k * 7) * 86_400_000),
+          },
+        });
+        nRel++;
+      }
+      if (alvo === 'em_atendimento') nAtend++; else nEncerr++;
     }
-    await prisma.processo.update({
-      where: { id: primeiro.id },
-      data: { status: 'em_atendimento' },
-    });
-    const vinc = await prisma.clienteAdvogado.findFirst({
-      where: {
-        clienteId: primeiro.clienteId,
-        advogadoId: aceita.advogadoId,
-        softDelete: false,
-      },
-    });
-    if (!vinc) {
-      await prisma.clienteAdvogado.create({
-        data: { clienteId: primeiro.clienteId, advogadoId: aceita.advogadoId },
-      });
-    }
-    console.log(`✓ Caso "${primeiro.titulo}" marcado como em_atendimento (demo)`);
   }
 
-  console.log('\nSenha de todos os usuários demo: senha123');
+  console.log(`✓ ${TOTAL_PROC} processos (${nAtend} em atendimento, ${nEncerr} encerrados)`);
+  console.log(`✓ ${nProp} propostas · ${nVinc} vínculos · ${nRel} relatórios`);
+
+  // ── Showcase das contas demo (garante telas populadas na apresentação) ─────
+  const mariaId = advIdPorEmail.get('maria.demo@pontejuridica.com')!;
+  const joao = await prisma.cliente.findUnique({ where: { email: 'cliente.demo@pontejuridica.com' }, select: { id: true, enderecoCidade: true, enderecoEstado: true } });
+  const joaoId = joao!.id;
+  const outrosTrab = (advPorArea.get('Trabalhista') ?? []).filter((x) => x !== mariaId);
+  const outrosPrev = (advPorArea.get('Previdenciário') ?? []).filter((x) => x !== mariaId);
+  const advFamilia = advPorArea.get('Família') ?? [];
+  const advCivel = advPorArea.get('Cível') ?? [];
+
+  // Cria um caso de demonstração com proposta(s) e, se aplicável, aceite + relatórios.
+  async function casoShowcase(
+    clienteId: number,
+    uf: string,
+    cidade: string,
+    area: string,
+    statusAlvo: 'aberto' | 'em_atendimento' | 'encerrado',
+    aceitarAdvId: number | null,
+    outros: number[],
+  ) {
+    const tpl = pick(CASOS_POR_AREA[area]);
+    const dataCriacao = diasAtras(randInt(10, 150));
+    const processo = await prisma.processo.create({
+      data: { clienteId, titulo: tpl.titulo, descricao: tpl.descricao, especializacao: area, estado: uf, cidade, dataCriacao },
+    });
+    const proponentes = [...new Set([...(aceitarAdvId ? [aceitarAdvId] : []), ...outros])];
+    const props: { id: number; advogadoId: number }[] = [];
+    for (const advId of proponentes) {
+      const p = await prisma.proposta.create({
+        data: {
+          processoId: processo.id,
+          advogadoId: advId,
+          mensagem: pick(MENSAGENS_PROPOSTA),
+          valorEstimado: randInt(80, 240) * 25,
+          dataCriacao: new Date(dataCriacao.getTime() + randInt(0, 4) * 86_400_000),
+        },
+      });
+      props.push({ id: p.id, advogadoId: advId });
+      nProp++;
+    }
+    if (statusAlvo !== 'aberto' && aceitarAdvId) {
+      const aceita = props.find((p) => p.advogadoId === aceitarAdvId)!;
+      await prisma.proposta.update({ where: { id: aceita.id }, data: { status: 'aceita' } });
+      await prisma.proposta.updateMany({ where: { processoId: processo.id, id: { not: aceita.id } }, data: { status: 'recusada' } });
+      await prisma.processo.update({ where: { id: processo.id }, data: { status: statusAlvo } });
+      if (await garantirVinculo(clienteId, aceitarAdvId, new Date(dataCriacao.getTime() + 3 * 86_400_000))) nVinc++;
+      const qtd = statusAlvo === 'encerrado' ? randInt(3, 5) : randInt(2, 3);
+      for (let k = 0; k < qtd; k++) {
+        await prisma.relatorioCaso.create({
+          data: { processoId: processo.id, advogadoId: aceitarAdvId, texto: pick(RELATORIOS), dataCriacao: new Date(dataCriacao.getTime() + (5 + k * 7) * 86_400_000) },
+        });
+        nRel++;
+      }
+    }
+  }
+
+  const ufJoao = joao!.enderecoEstado ?? 'SP';
+  const cidJoao = joao!.enderecoCidade ?? 'São Paulo';
+  // Casos do João (cliente demo): Meus Casos com propostas, aceites e 2 contatos distintos.
+  await casoShowcase(joaoId, ufJoao, cidJoao, 'Trabalhista', 'em_atendimento', mariaId, pickN(outrosTrab, 2));
+  await casoShowcase(joaoId, ufJoao, cidJoao, 'Trabalhista', 'aberto', null, [mariaId, ...pickN(outrosTrab, 2)]);
+  await casoShowcase(joaoId, ufJoao, cidJoao, 'Previdenciário', 'encerrado', mariaId, pickN(outrosPrev, 1));
+  await casoShowcase(joaoId, ufJoao, cidJoao, 'Previdenciário', 'aberto', null, [mariaId, ...pickN(outrosPrev, 1)]);
+  await casoShowcase(joaoId, ufJoao, cidJoao, 'Família', 'em_atendimento', advFamilia[0] ?? null, pickN(advFamilia.slice(1), 1)); // 2º contato
+  await casoShowcase(joaoId, ufJoao, cidJoao, 'Cível', 'aberto', null, pickN(advCivel, 2));
+
+  // Mais clientes para a maria (Meus Clientes / Meus Casos ricos): 6 casos aceitos com outros clientes.
+  const outrosClientes = clientesDb.filter((c) => c.id !== joaoId);
+  for (const cli of pickN(outrosClientes, 6)) {
+    const area = pick(['Trabalhista', 'Previdenciário'] as const);
+    const uf = cli.enderecoEstado ?? 'SP';
+    const cidade = cli.enderecoCidade ?? 'São Paulo';
+    const statusAlvo = chance(0.5) ? 'em_atendimento' : 'encerrado';
+    const outros = area === 'Trabalhista' ? pickN(outrosTrab, 1) : pickN(outrosPrev, 1);
+    await casoShowcase(cli.id, uf, cidade, area, statusAlvo, mariaId, outros);
+  }
+  // juliana.demo (Cível/Básico) e carlos.demo (Criminal/Elite): casos aceitos + relatórios.
+  const julianaId = advIdPorEmail.get('juliana.demo@pontejuridica.com')!;
+  const carlosId = advIdPorEmail.get('carlos.demo@pontejuridica.com')!;
+  const outrosCivel = advCivel.filter((x) => x !== julianaId);
+  const outrosCriminal = (advPorArea.get('Criminal') ?? []).filter((x) => x !== carlosId);
+  for (const cli of pickN(outrosClientes, 4)) {
+    await casoShowcase(cli.id, cli.enderecoEstado ?? 'SP', cli.enderecoCidade ?? 'São Paulo', 'Cível', chance(0.5) ? 'em_atendimento' : 'encerrado', julianaId, pickN(outrosCivel, 1));
+  }
+  for (const cli of pickN(outrosClientes, 4)) {
+    await casoShowcase(cli.id, cli.enderecoEstado ?? 'SP', cli.enderecoCidade ?? 'São Paulo', 'Criminal', chance(0.5) ? 'em_atendimento' : 'encerrado', carlosId, pickN(outrosCriminal, 1));
+  }
+
+  // mariana.demo (cliente): casos publicados com propostas e contatos.
+  const mariana = await prisma.cliente.findUnique({ where: { email: 'mariana.demo@pontejuridica.com' }, select: { id: true, enderecoCidade: true, enderecoEstado: true } });
+  const ufMar = mariana!.enderecoEstado ?? 'RJ';
+  const cidMar = mariana!.enderecoCidade ?? 'Rio de Janeiro';
+  await casoShowcase(mariana!.id, ufMar, cidMar, 'Família', 'em_atendimento', advFamilia[0] ?? null, pickN(advFamilia.slice(1), 1));
+  await casoShowcase(mariana!.id, ufMar, cidMar, 'Cível', 'encerrado', julianaId, pickN(outrosCivel, 1));
+  await casoShowcase(mariana!.id, ufMar, cidMar, 'Trabalhista', 'aberto', null, pickN(outrosTrab, 2));
+
+  console.log('✓ Showcase das contas demo (maria/carlos/juliana + joão/mariana) criado');
+
+  console.log('\nContas demo (senha: senha123):');
+  console.log('  Advogado: maria.demo@pontejuridica.com');
+  console.log('  Cliente : cliente.demo@pontejuridica.com');
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
