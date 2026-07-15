@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usePropostasPendentes } from '../hooks/usePropostasPendentes';
+import { NotificacoesBell } from './NotificacoesBell';
 
 interface NavItem {
   label: string;
@@ -60,6 +61,7 @@ export function Navbar({ items = [] }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          <NotificacoesBell />
           <div className="hidden sm:flex flex-col items-end">
             <span className="text-xs font-semibold text-slate-700 capitalize">{tipo}</span>
             <span className="text-xs text-slate-400">Portal {tipo === 'advogado' ? 'Jurídico' : 'do Cliente'}</span>

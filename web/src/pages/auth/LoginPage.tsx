@@ -181,6 +181,11 @@ export function LoginPage() {
             >
               {loading ? 'Entrando...' : `Entrar como ${tipo === 'cliente' ? 'Cliente' : 'Advogado'}`}
             </button>
+            <p className="text-center">
+              <Link to="/recuperar-senha" className="text-xs font-semibold text-slate-400 hover:text-primary hover:underline">
+                Esqueci minha senha
+              </Link>
+            </p>
           </form>
 
           {/* Demo box */}

@@ -7,6 +7,7 @@ import { TrocarPlanoModal } from '../../components/TrocarPlanoModal';
 import { useToast } from '../../components/Toast';
 
 const NAV = [
+  { label: 'Painel', to: '/painel' },
   { label: 'Oportunidades', to: '/' },
   { label: 'Meus Casos', to: '/meus-casos' },
   { label: 'Meus Clientes', to: '/meus-clientes' },

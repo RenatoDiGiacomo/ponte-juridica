@@ -14,6 +14,24 @@ export const authService = {
   registrarCliente: (data: object) => api.post('/auth/cliente/registro', data),
   registrarAdvogado: (data: object) => api.post('/auth/advogado/registro', data),
   me: () => api.get('/auth/me'),
+  solicitarReset: (email: string, tipo: 'cliente' | 'advogado') =>
+    api.post<{ enviado: boolean; token?: string }>('/auth/reset/solicitar', { email, tipo }),
+  redefinirSenha: (token: string, senha: string) =>
+    api.post('/auth/reset/redefinir', { token, senha }),
+};
+
+export const avaliacoesService = {
+  criar: (data: { processoId: number; nota: number; comentario?: string }) =>
+    api.post('/avaliacoes', data),
+  porAdvogado: (advogadoId: number) =>
+    api.get<{ media: number | null; total: number; avaliacoes: { id: number; nota: number; comentario: string | null; dataCriacao: string; cliente: string }[] }>(`/avaliacoes/advogado/${advogadoId}`),
+};
+
+export const notificacoesService = {
+  listar: () => api.get<{ id: number; tipo: string; titulo: string; mensagem: string; lida: boolean; dataCriacao: string }[]>('/notificacoes'),
+  naoLidas: () => api.get<{ total: number }>('/notificacoes/nao-lidas'),
+  marcarLida: (id: number) => api.patch(`/notificacoes/${id}/lida`),
+  marcarTodas: () => api.patch('/notificacoes/lidas'),
 };
 
 export const advogadosService = {
@@ -28,6 +46,11 @@ export const advogadosService = {
   adicionarArea: (areaId: number) => api.post('/advogados/perfil/areas', { areaId }),
   removerArea: (areaId: number) => api.delete(`/advogados/perfil/areas/${areaId}`),
   trocarPlano: (planoId: number) => api.patch('/advogados/perfil/plano', { planoId }),
+  dashboard: () => api.get<{
+    propostasEnviadas: number; propostasAceitas: number; taxaAceite: number;
+    casosAtivos: number; casosEncerrados: number; clientesVinculados: number;
+    notaMedia: number | null; totalAvaliacoes: number; faturamentoEstimado: number;
+  }>('/advogados/dashboard'),
 };
 
 export const areasService = {

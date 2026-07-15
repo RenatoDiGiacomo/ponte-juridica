@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { processosService } from '../../services/api';
+import { processosService, avaliacoesService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Modal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import { StatusBadge, type CasoStatus } from '../../components/StatusBadge';
 import { EmptyState } from '../../components/EmptyState';
@@ -44,6 +45,7 @@ type Proposta = {
   advogado: { id: number; nome: string; oab: string };
 };
 
+type Avaliacao = { id: number; nota: number; comentario: string | null };
 type Processo = {
   id: number;
   titulo: string;
@@ -54,6 +56,7 @@ type Processo = {
   cidade?: string | null;
   dataCriacao: string;
   propostas: Proposta[];
+  avaliacoes?: Avaliacao[];
 };
 
 export function MeusCasosPage() {
@@ -69,6 +72,10 @@ export function MeusCasosPage() {
   const [aceitando, setAceitando] = useState(false);
   const [encerrarId, setEncerrarId] = useState<number | null>(null);
   const [encerrando, setEncerrando] = useState(false);
+  const [avaliarCaso, setAvaliarCaso] = useState<Processo | null>(null);
+  const [notaAval, setNotaAval] = useState(5);
+  const [comentarioAval, setComentarioAval] = useState('');
+  const [enviandoAval, setEnviandoAval] = useState(false);
   const { mostrar } = useToast();
 
   const carregar = useCallback(async () => {
@@ -134,6 +141,31 @@ export function MeusCasosPage() {
       await carregar();
     } catch (e: any) {
       mostrar(e.response?.data?.message ?? 'Falha ao recusar', 'erro');
+    }
+  }
+
+  function abrirAvaliacao(p: Processo) {
+    setAvaliarCaso(p);
+    setNotaAval(5);
+    setComentarioAval('');
+  }
+
+  async function enviarAvaliacao() {
+    if (!avaliarCaso) return;
+    setEnviandoAval(true);
+    try {
+      await avaliacoesService.criar({
+        processoId: avaliarCaso.id,
+        nota: notaAval,
+        comentario: comentarioAval.trim() || undefined,
+      });
+      setAvaliarCaso(null);
+      mostrar('Avaliação enviada. Obrigado!', 'sucesso');
+      await carregar();
+    } catch (e: any) {
+      mostrar(e.response?.data?.message ?? 'Falha ao avaliar', 'erro');
+    } finally {
+      setEnviandoAval(false);
     }
   }
 
@@ -295,6 +327,27 @@ export function MeusCasosPage() {
                     {selecionado.cidade && selecionado.estado ? ` · 📍 ${selecionado.cidade}/${selecionado.estado}` : ''}
                   </p>
 
+                  {selecionado.status === 'encerrado' && (
+                    selecionado.avaliacoes && selecionado.avaliacoes.length > 0 ? (
+                      <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-emerald-800">
+                          ✓ Você avaliou este atendimento: {'★'.repeat(selecionado.avaliacoes[0].nota)}{'☆'.repeat(5 - selecionado.avaliacoes[0].nota)}
+                        </p>
+                        {selecionado.avaliacoes[0].comentario && (
+                          <p className="mt-1 text-xs text-emerald-700">"{selecionado.avaliacoes[0].comentario}"</p>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => abrirAvaliacao(selecionado)}
+                        className="mt-4 w-full rounded-xl border border-secondary bg-secondary/10 py-2.5 text-sm font-bold text-primary hover:bg-secondary/20"
+                      >
+                        ⭐ Avaliar o advogado deste caso
+                      </button>
+                    )
+                  )}
+
                   <p className="mt-6 mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
                     Propostas recebidas ({selecionado.propostas.length})
                   </p>
@@ -365,6 +418,50 @@ export function MeusCasosPage() {
         onConfirmar={confirmarAceite}
         onCancelar={() => setPropostaConfirmar(null)}
       />
+
+      <Modal aberto={avaliarCaso !== null} onFechar={() => setAvaliarCaso(null)} titulo="Avaliar advogado">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">Como foi o atendimento no caso "{avaliarCaso?.titulo}"?</p>
+          <div className="flex justify-center gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setNotaAval(n)}
+                aria-label={`${n} estrela${n > 1 ? 's' : ''}`}
+                className={`text-3xl transition-transform hover:scale-110 ${n <= notaAval ? 'text-secondary' : 'text-slate-300'}`}
+              >
+                ★
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={comentarioAval}
+            onChange={(e) => setComentarioAval(e.target.value)}
+            placeholder="Deixe um comentário (opcional)"
+            rows={3}
+            maxLength={1000}
+            className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={enviarAvaliacao}
+              disabled={enviandoAval}
+              className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60"
+            >
+              {enviandoAval ? 'Enviando...' : 'Enviar avaliação'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAvaliarCaso(null)}
+              className="flex-1 rounded-lg border border-slate-200 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmModal
         aberto={encerrarId !== null}

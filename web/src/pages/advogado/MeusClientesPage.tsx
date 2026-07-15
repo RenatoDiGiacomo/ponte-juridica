@@ -10,6 +10,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { usePaginatedQuery, type Paginated } from '../../hooks/usePaginatedQuery';
 
 const NAV = [
+  { label: 'Painel', to: '/painel' },
   { label: 'Oportunidades', to: '/' },
   { label: 'Meus Casos', to: '/meus-casos' },
   { label: 'Meus Clientes', to: '/meus-clientes' },

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegistroPage } from './pages/auth/RegistroPage';
+import { RecuperarSenhaPage } from './pages/auth/RecuperarSenhaPage';
 import { BuscarAdvogadosPage } from './pages/cliente/BuscarAdvogadosPage';
 import { MinhasConexoesPage } from './pages/cliente/MinhasConexoesPage';
 import { MeusCasosPage } from './pages/cliente/MeusCasosPage';
@@ -11,6 +12,7 @@ import { OportunidadesPage } from './pages/advogado/OportunidadesPage';
 import { MeusClientesPage } from './pages/advogado/MeusClientesPage';
 import { PerfilAdvogadoPage } from './pages/advogado/PerfilAdvogadoPage';
 import { MeusCasosAdvogadoPage } from './pages/advogado/MeusCasosAdvogadoPage';
+import { DashboardAdvogadoPage } from './pages/advogado/DashboardAdvogadoPage';
 
 function AppRoutes() {
   const { token, tipo, isLoading } = useAuth();
@@ -24,6 +26,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegistroPage />} />
+        <Route path="/recuperar-senha" element={<RecuperarSenhaPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -46,6 +49,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/" element={<OportunidadesPage />} />
+        <Route path="/painel" element={<DashboardAdvogadoPage />} />
         <Route path="/meus-casos" element={<MeusCasosAdvogadoPage />} />
         <Route path="/meus-clientes" element={<MeusClientesPage />} />
         <Route path="/perfil" element={<PerfilAdvogadoPage />} />
