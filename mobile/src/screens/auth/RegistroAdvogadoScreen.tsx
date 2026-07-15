@@ -15,7 +15,7 @@ export function RegistroAdvogadoScreen({ navigation }: any) {
   const [especializacoes, setEspecializacoes] = useState<string[]>([]);
   const [planos, setPlanos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const { loginAdvogado } = useAuth();
+  const { loginAdvogado, marcarRecemCadastrado } = useAuth();
 
   useEffect(() => {
     planosService.listar().then(({ data }) => setPlanos(data));
@@ -47,6 +47,7 @@ export function RegistroAdvogadoScreen({ navigation }: any) {
         planoId: form.planoId,
         senha: form.senha,
       });
+      marcarRecemCadastrado();
       await loginAdvogado(form.email, form.senha);
     } catch (e: any) {
       Alert.alert('Erro', e.response?.data?.message ?? 'Erro ao criar conta');

@@ -8,6 +8,10 @@ interface AuthContextData {
   token: string | null;
   tipo: Tipo;
   isLoading: boolean;
+  /** true logo após um cadastro — usado para levar ao perfil (onboarding). */
+  recemCadastrado: boolean;
+  marcarRecemCadastrado: () => void;
+  limparRecemCadastrado: () => void;
   loginCliente: (email: string, senha: string) => Promise<void>;
   loginAdvogado: (email: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -22,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [tipo, setTipo] = useState<Tipo>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [recemCadastrado, setRecemCadastrado] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -61,10 +66,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.removeItem(KEY_TIPO);
     setToken(null);
     setTipo(null);
+    setRecemCadastrado(false);
   }
 
   return (
-    <AuthContext.Provider value={{ token, tipo, isLoading, loginCliente, loginAdvogado, logout }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        tipo,
+        isLoading,
+        recemCadastrado,
+        marcarRecemCadastrado: () => setRecemCadastrado(true),
+        limparRecemCadastrado: () => setRecemCadastrado(false),
+        loginCliente,
+        loginAdvogado,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { advogadosService, areasService } from '../../services/api';
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
+import { advogadosService, areasService, midiaService, API_HOST } from '../../services/api';
+import { escolherFoto } from '../../utils/upload';
 import { useAuth } from '../../contexts/AuthContext';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -35,7 +36,8 @@ export function PerfilAdvogadoScreen() {
   const [todasAreas, setTodasAreas] = useState<{ id: number; nome: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const { logout } = useAuth();
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const { logout, recemCadastrado, limparRecemCadastrado } = useAuth();
 
   function aplicar(p: any) {
     setPerfil(p);
@@ -64,6 +66,22 @@ export function PerfilAdvogadoScreen() {
       Alert.alert('Erro', e.response?.data?.message ?? 'Falha ao salvar');
     } finally {
       setSalvando(false);
+    }
+  }
+
+  async function enviarFoto() {
+    const arquivo = await escolherFoto();
+    if (!arquivo) return;
+    setEnviandoFoto(true);
+    try {
+      await midiaService.enviarFoto(arquivo);
+      const { data } = await advogadosService.meuPerfil();
+      aplicar(data);
+      Alert.alert('Pronto', 'Foto atualizada');
+    } catch (e: any) {
+      Alert.alert('Erro', e.response?.data?.message ?? 'Falha ao enviar foto');
+    } finally {
+      setEnviandoFoto(false);
     }
   }
 
@@ -102,6 +120,30 @@ export function PerfilAdvogadoScreen() {
       </View>
 
       <View className="px-6 py-6 gap-4">
+        {recemCadastrado && (
+          <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <Text className="font-bold text-primary">👋 Bem-vindo à Ponte Jurídica!</Text>
+            <Text className="text-gray-600 text-sm mt-1">Complete seu perfil (foto, áreas, contato e endereço) para receber as melhores oportunidades.</Text>
+            <TouchableOpacity onPress={limparRecemCadastrado} className="self-start mt-2">
+              <Text className="text-primary text-sm font-semibold">Entendi</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Foto de perfil */}
+        <View className="bg-white rounded-2xl p-4 shadow-sm flex-row items-center gap-4">
+          {perfil.fotoPath ? (
+            <Image source={{ uri: `${API_HOST}${perfil.fotoPath}` }} className="w-16 h-16 rounded-full" />
+          ) : (
+            <View className="w-16 h-16 rounded-full bg-blue-100 items-center justify-center">
+              <Text className="text-primary text-2xl font-bold">{perfil.nome?.[0]}</Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={enviarFoto} disabled={enviandoFoto} className="flex-1 bg-primary/10 py-3 rounded-xl items-center">
+            {enviandoFoto ? <ActivityIndicator color="#1E3A5F" /> : <Text className="text-primary font-semibold">📷 {perfil.fotoPath ? 'Alterar foto' : 'Enviar foto'}</Text>}
+          </TouchableOpacity>
+        </View>
+
         {/* Plano */}
         <View className="bg-white rounded-2xl p-4 shadow-sm">
           <Text className="text-xs text-gray-400 font-medium mb-1 uppercase tracking-wide">Plano atual</Text>

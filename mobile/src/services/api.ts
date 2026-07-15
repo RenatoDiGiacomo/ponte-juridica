@@ -1,9 +1,13 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://localhost:3333/api/v1';
+/** Host do backend (sem /api/v1) — usado para montar URL pública de mídia (fotos). */
+export const API_HOST = 'http://localhost:3333';
+const API_URL = `${API_HOST}/api/v1`;
 
 export const api = axios.create({ baseURL: API_URL });
+
+type ArquivoUpload = { uri: string; name: string; type: string };
 
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('@pontejuridica:token');
@@ -50,6 +54,20 @@ export const clientesService = {
 // Planos
 export const planosService = {
   listar: () => api.get('/planos'),
+};
+
+// Mídia (upload foto/documento) — campo 'arquivo' (multipart)
+export const midiaService = {
+  enviarFoto: (arquivo: ArquivoUpload) => {
+    const fd = new FormData();
+    fd.append('arquivo', arquivo as any);
+    return api.post('/me/foto', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  enviarDocumento: (arquivo: ArquivoUpload) => {
+    const fd = new FormData();
+    fd.append('arquivo', arquivo as any);
+    return api.post('/me/documento', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
 };
 
 // Conexões

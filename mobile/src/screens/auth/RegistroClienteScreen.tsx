@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export function RegistroClienteScreen({ navigation }: any) {
   const [form, setForm] = useState({ nome: '', email: '', documento: '', senha: '', confirmarSenha: '' });
   const [loading, setLoading] = useState(false);
-  const { loginCliente } = useAuth();
+  const { loginCliente, marcarRecemCadastrado } = useAuth();
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -31,6 +31,7 @@ export function RegistroClienteScreen({ navigation }: any) {
         documento: form.documento,
         senha: form.senha,
       });
+      marcarRecemCadastrado();
       await loginCliente(form.email, form.senha);
     } catch (e: any) {
       Alert.alert('Erro', e.response?.data?.message ?? 'Erro ao criar conta');

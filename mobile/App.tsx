@@ -132,8 +132,9 @@ const baseTabScreenOptions = {
 
 function ClienteTabs() {
   const pendentes = usePropostasPendentes();
+  const { recemCadastrado } = useAuth();
   return (
-    <Tab.Navigator screenOptions={baseTabScreenOptions}>
+    <Tab.Navigator screenOptions={baseTabScreenOptions} initialRouteName={recemCadastrado ? 'PerfilCliente' : undefined}>
       <Tab.Screen
         name="MeusCasos"
         component={MeusCasosStack}
@@ -182,8 +183,9 @@ function ClienteTabs() {
 }
 
 function AdvogadoTabs() {
+  const { recemCadastrado } = useAuth();
   return (
-    <Tab.Navigator screenOptions={baseTabScreenOptions}>
+    <Tab.Navigator screenOptions={baseTabScreenOptions} initialRouteName={recemCadastrado ? 'Perfil' : undefined}>
       <Tab.Screen
         name="Oportunidades"
         component={OportunidadesStack}
