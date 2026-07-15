@@ -67,15 +67,17 @@ export class AuthService {
   async registrarAdvogado(dto: RegisterAdvogadoDto) {
     const existe = await this.prisma.advogado.findFirst({ where: { email: dto.email } });
     if (existe) throw new ConflictException('E-mail já cadastrado');
-    const area = await this.prisma.area.findUnique({ where: { nome: dto.area } });
-    if (!area) throw new BadRequestException('Área de atuação inválida');
+    const nomes = [...new Set(dto.areas)];
+    const areas = await this.prisma.area.findMany({ where: { nome: { in: nomes } } });
+    if (areas.length !== nomes.length)
+      throw new BadRequestException('Área de atuação inválida');
     const senha = await bcrypt.hash(dto.senha, 10);
-    const { area: _area, ...resto } = dto;
+    const { areas: _areas, ...resto } = dto;
     const advogado = await this.prisma.advogado.create({
       data: {
         ...resto,
         senha,
-        areas: { create: { area: { connect: { id: area.id } } } },
+        areas: { create: areas.map((a) => ({ area: { connect: { id: a.id } } })) },
       },
       select: { id: true, nome: true, email: true, oab: true },
     });

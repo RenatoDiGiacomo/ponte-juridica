@@ -22,8 +22,11 @@ export function RegistroPage() {
 
   // Advogado extra fields
   const [oab, setOab] = useState('');
-  const [especializacao, setEspecializacao] = useState('');
+  const [especializacoes, setEspecializacoes] = useState<string[]>([]);
   const [planoId, setPlanoId] = useState<number | null>(null);
+
+  const alternarEsp = (esp: string) =>
+    setEspecializacoes((prev) => (prev.includes(esp) ? prev.filter((x) => x !== esp) : [...prev, esp]));
 
   useEffect(() => {
     if (tipo === 'advogado') {
@@ -35,7 +38,7 @@ export function RegistroPage() {
     e.preventDefault();
     setErro('');
     if (senha !== confirmar) { setErro('As senhas não conferem'); return; }
-    if (tipo === 'advogado' && !especializacao) { setErro('Selecione uma especialização'); return; }
+    if (tipo === 'advogado' && especializacoes.length === 0) { setErro('Selecione ao menos uma especialização'); return; }
     if (tipo === 'advogado' && !planoId) { setErro('Selecione um plano'); return; }
     setLoading(true);
     try {
@@ -43,10 +46,11 @@ export function RegistroPage() {
         await authService.registrarCliente({ nome, email, documento, senha });
         await loginCliente(email, senha);
       } else {
-        await authService.registrarAdvogado({ nome, email, oab, area: especializacao, planoId, senha });
+        await authService.registrarAdvogado({ nome, email, oab, areas: especializacoes, planoId, senha });
         await loginAdvogado(email, senha);
       }
-      navigate('/');
+      // Primeiro acesso: leva ao "Meu Perfil" para complementar o cadastro.
+      navigate('/perfil', { state: { novo: true } });
     } catch (e: any) {
       setErro(e.response?.data?.message ?? 'Erro ao criar conta');
     } finally {
@@ -120,14 +124,17 @@ export function RegistroPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Especialização</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Especializações <span className="font-normal text-gray-400">(uma ou mais)</span>
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {ESPECIALIZACOES.map((esp) => (
                       <button
                         key={esp} type="button"
-                        onClick={() => setEspecializacao(esp)}
+                        onClick={() => alternarEsp(esp)}
+                        aria-pressed={especializacoes.includes(esp)}
                         className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                          especializacao === esp
+                          especializacoes.includes(esp)
                             ? 'bg-primary text-white border-primary'
                             : 'bg-white text-gray-600 border-gray-300 hover:border-primary'
                         }`}

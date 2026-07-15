@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsInt } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsInt, IsArray, ArrayMinSize } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterAdvogadoDto {
@@ -15,9 +15,16 @@ export class RegisterAdvogadoDto {
   @MinLength(6)
   senha: string;
 
-  @ApiProperty({ example: 'Trabalhista', enum: ['Criminal','Trabalhista','Família','Cível','Tributário','Previdenciário'] })
-  @IsString()
-  area: string;
+  @ApiProperty({
+    example: ['Trabalhista', 'Cível'],
+    isArray: true,
+    enum: ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'],
+    description: 'Uma ou mais áreas de atuação',
+  })
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Selecione ao menos uma área de atuação' })
+  @IsString({ each: true })
+  areas: string[];
 
   @ApiProperty({ example: '12345/SP' })
   @IsString()

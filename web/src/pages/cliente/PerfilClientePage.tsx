@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { clientesService, midiaService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,6 +26,7 @@ export function PerfilClientePage() {
   const [salvando, setSalvando] = useState(false);
   const { logout } = useAuth();
   const { mostrar } = useToast();
+  const novo = (useLocation().state as { novo?: boolean } | null)?.novo ?? false;
 
   function aplicar(p: any) {
     setPerfil(p);
@@ -98,6 +100,12 @@ export function PerfilClientePage() {
       </div>
 
       <div className="mx-auto max-w-3xl px-6 py-8">
+        {novo && (
+          <div className="mb-6 rounded-2xl border border-secondary/40 bg-secondary/10 px-5 py-4">
+            <p className="font-bold text-primary">👋 Bem-vindo à Ponte Jurídica!</p>
+            <p className="mt-1 text-sm text-slate-600">Sua conta foi criada. Complete seu cadastro abaixo (foto, contato e endereço) para aproveitar melhor a plataforma.</p>
+          </div>
+        )}
         {/* Foto */}
         <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-6">
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Foto de perfil <span className="font-normal text-slate-400">(pública)</span></p>
