@@ -36,10 +36,24 @@ export class ClientesService {
   }
 
   async atualizarPerfil(id: number, dto: AtualizarPerfilClienteDto) {
-    const data: Prisma.ClienteUpdateInput = {
-      ...dto,
-      ...(dto.dataNascimento && { dataNascimento: new Date(dto.dataNascimento) }),
-    };
+    // Campos opcionais que aceitam null (podem ser limpos). Os obrigatórios
+    // (nome/email/documento) nunca viram null. Datas '' viram null, não '' cru.
+    const NULAVEIS = new Set([
+      'dataNascimento', 'telefone', 'enderecoLogradouro', 'enderecoNumero',
+      'enderecoBairro', 'enderecoCidade', 'enderecoEstado', 'enderecoCep',
+    ]);
+    const data: Prisma.ClienteUpdateInput = {};
+    for (const [chave, valor] of Object.entries(dto)) {
+      if (valor === undefined) continue;
+      if (chave === 'dataNascimento') {
+        // '' → null; data válida → Date; evita o Prisma receber string vazia num campo DateTime
+        (data as Record<string, unknown>).dataNascimento = valor ? new Date(valor as string) : null;
+      } else if (valor === '' && NULAVEIS.has(chave)) {
+        (data as Record<string, unknown>)[chave] = null;
+      } else {
+        (data as Record<string, unknown>)[chave] = valor;
+      }
+    }
     try {
       await this.prisma.cliente.update({ where: { id }, data });
     } catch (e) {

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsInt, IsOptional, IsString, Length, MaxLength, ValidateIf } from 'class-validator';
 
 export class AtualizarPerfilAdvogadoDto {
   @ApiPropertyOptional()
@@ -16,6 +16,7 @@ export class AtualizarPerfilAdvogadoDto {
 
   @ApiPropertyOptional({ example: 'SP' })
   @IsOptional()
+  @ValidateIf((o) => o.estadoAtuacao !== '') // UF vazia = "não informado"; só valida 2 letras quando preenchida
   @IsString()
   @Length(2, 2, { message: 'Estado deve ter 2 letras (UF)' })
   estadoAtuacao?: string;

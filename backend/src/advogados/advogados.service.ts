@@ -91,8 +91,15 @@ export class AdvogadosService {
 
   /** Atualiza dados do próprio perfil (nome/OAB/estado/cidade). */
   async atualizarPerfil(id: number, dto: AtualizarPerfilAdvogadoDto): Promise<AdvogadoPerfilDTO | null> {
+    // '' em UF/cidade → null (não guardar string vazia). nome/oab passam como estão.
+    const data: Prisma.AdvogadoUpdateInput = {};
+    for (const [chave, valor] of Object.entries(dto)) {
+      if (valor === undefined) continue;
+      (data as Record<string, unknown>)[chave] =
+        valor === '' && (chave === 'estadoAtuacao' || chave === 'cidadeAtuacao') ? null : valor;
+    }
     try {
-      await this.prisma.advogado.update({ where: { id }, data: { ...dto } });
+      await this.prisma.advogado.update({ where: { id }, data });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ConflictException('OAB já cadastrada para outro advogado');

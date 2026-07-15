@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Length, MaxLength, ValidateIf } from 'class-validator';
 
 /** Atualização do próprio perfil do cliente (campos públicos e privados). */
 export class AtualizarPerfilClienteDto {
@@ -58,6 +58,7 @@ export class AtualizarPerfilClienteDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @ValidateIf((o) => o.enderecoEstado !== '') // UF vazia = "não informado"; só valida 2 letras quando preenchida
   @IsString()
   @Length(2, 2)
   enderecoEstado?: string;
