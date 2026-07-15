@@ -12,6 +12,8 @@ export interface AdvogadoPublicoDTO {
   nota: number | null;
   estadoAtuacao: string | null;
   cidadeAtuacao: string | null;
+  escritorio: string | null;
+  bio: string | null;
   fotoPath: string | null;
   plano?: { id: number; nome: string };
 }
@@ -20,6 +22,10 @@ export interface AdvogadoContatoDTO extends AdvogadoPublicoDTO {
   email: string;
   telefone: string | null;
   whatsapp: string | null;
+  enderecoLogradouro: string | null;
+  enderecoNumero: string | null;
+  enderecoBairro: string | null;
+  enderecoCep: string | null;
 }
 
 /** Perfil do próprio advogado (contato + plano completo + contagem de clientes). */
@@ -38,6 +44,12 @@ type AdvogadoRaw = {
   email?: string;
   telefone?: string | null;
   whatsapp?: string | null;
+  escritorio?: string | null;
+  bio?: string | null;
+  enderecoLogradouro?: string | null;
+  enderecoNumero?: string | null;
+  enderecoBairro?: string | null;
+  enderecoCep?: string | null;
   nota?: unknown;
   estadoAtuacao?: string | null;
   cidadeAtuacao?: string | null;
@@ -46,7 +58,7 @@ type AdvogadoRaw = {
   areas?: { area?: { nome: string } }[];
 };
 
-/** Visão pública: SEM email/telefone/whatsapp. Usada em busca/listagem e perfil público. */
+/** Visão pública: SEM email/telefone/whatsapp/endereço. Usada em busca/listagem e perfil público. */
 export function toAdvogadoPublico(a: AdvogadoRaw): AdvogadoPublicoDTO {
   return {
     id: a.id,
@@ -56,18 +68,24 @@ export function toAdvogadoPublico(a: AdvogadoRaw): AdvogadoPublicoDTO {
     nota: a.nota != null ? Number(a.nota) : null,
     estadoAtuacao: a.estadoAtuacao ?? null,
     cidadeAtuacao: a.cidadeAtuacao ?? null,
+    escritorio: a.escritorio ?? null,
+    bio: a.bio ?? null,
     fotoPath: a.fotoPath ?? null,
     ...(a.plano ? { plano: { id: a.plano.id, nome: a.plano.nome } } : {}),
   };
 }
 
-/** Visão de contato: pública + e-mail/telefone/whatsapp. Só para o próprio dono ou clientes vinculados. */
+/** Visão de contato: pública + e-mail/telefone/whatsapp/endereço. Só para o dono ou clientes vinculados. */
 export function toAdvogadoContato(a: AdvogadoRaw): AdvogadoContatoDTO {
   return {
     ...toAdvogadoPublico(a),
     email: a.email ?? '',
     telefone: a.telefone ?? null,
     whatsapp: a.whatsapp ?? null,
+    enderecoLogradouro: a.enderecoLogradouro ?? null,
+    enderecoNumero: a.enderecoNumero ?? null,
+    enderecoBairro: a.enderecoBairro ?? null,
+    enderecoCep: a.enderecoCep ?? null,
   };
 }
 
@@ -79,6 +97,12 @@ export const SELECT_ADVOGADO_DTO = {
   email: true,
   telefone: true,
   whatsapp: true,
+  escritorio: true,
+  bio: true,
+  enderecoLogradouro: true,
+  enderecoNumero: true,
+  enderecoBairro: true,
+  enderecoCep: true,
   nota: true,
   estadoAtuacao: true,
   cidadeAtuacao: true,

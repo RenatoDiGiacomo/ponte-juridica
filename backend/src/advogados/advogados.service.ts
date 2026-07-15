@@ -91,12 +91,13 @@ export class AdvogadosService {
 
   /** Atualiza dados do próprio perfil (nome/OAB/estado/cidade). */
   async atualizarPerfil(id: number, dto: AtualizarPerfilAdvogadoDto): Promise<AdvogadoPerfilDTO | null> {
-    // '' em UF/cidade → null (não guardar string vazia). nome/oab passam como estão.
+    // '' → null nos campos opcionais (não guardar string vazia). nome/oab passam como estão.
+    const OBRIGATORIOS = new Set(['nome', 'oab']);
     const data: Prisma.AdvogadoUpdateInput = {};
     for (const [chave, valor] of Object.entries(dto)) {
       if (valor === undefined) continue;
       (data as Record<string, unknown>)[chave] =
-        valor === '' && (chave === 'estadoAtuacao' || chave === 'cidadeAtuacao') ? null : valor;
+        valor === '' && !OBRIGATORIOS.has(chave) ? null : valor;
     }
     try {
       await this.prisma.advogado.update({ where: { id }, data });

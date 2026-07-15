@@ -26,6 +26,54 @@ export class AtualizarPerfilAdvogadoDto {
   @IsString()
   @MaxLength(100)
   cidadeAtuacao?: string;
+
+  @ApiPropertyOptional({ example: '(11) 3000-0000' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  telefone?: string;
+
+  @ApiPropertyOptional({ example: '(11) 99000-0000' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  whatsapp?: string;
+
+  @ApiPropertyOptional({ example: 'Ferreira & Associados Advocacia' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  escritorio?: string;
+
+  @ApiPropertyOptional({ example: 'Atuo há 12 anos em Direito do Trabalho...' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  bio?: string;
+
+  @ApiPropertyOptional({ example: 'Av. Paulista' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  enderecoLogradouro?: string;
+
+  @ApiPropertyOptional({ example: '1000' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  enderecoNumero?: string;
+
+  @ApiPropertyOptional({ example: 'Bela Vista' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  enderecoBairro?: string;
+
+  @ApiPropertyOptional({ example: '01310-100' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  enderecoCep?: string;
 }
 
 export class AdicionarAreaDto {

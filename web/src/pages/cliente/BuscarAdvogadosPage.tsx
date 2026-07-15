@@ -25,6 +25,7 @@ const AVATARS = ['bg-blue-600', 'bg-violet-600', 'bg-emerald-600', 'bg-rose-600'
 type Advogado = {
   id: number; nome: string; oab: string; areas: string[]; especializacao?: string;
   nota: number | null; estadoAtuacao: string | null; cidadeAtuacao: string | null;
+  escritorio: string | null; bio: string | null;
   plano?: { id: number; nome: string };
 };
 
@@ -134,6 +135,7 @@ export function BuscarAdvogadosPage() {
                             <h3 className="text-base font-bold leading-snug text-slate-800">{adv.nome}</h3>
                             <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ring-1 ${planStyle}`}>{adv.plano?.nome}</span>
                           </div>
+                          {adv.escritorio && <p className="mt-0.5 text-xs text-slate-400">🏢 {adv.escritorio}</p>}
                           <div className="mt-1 flex flex-wrap gap-1">
                             {adv.areas.map((a) => (
                               <span key={a} className="rounded-full bg-primary/8 px-2 py-0.5 text-xs font-semibold text-primary">{a}</span>
@@ -145,7 +147,8 @@ export function BuscarAdvogadosPage() {
                         <span className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1 font-mono font-medium text-slate-500">OAB {adv.oab}</span>
                         <span className="font-bold text-secondary">★ {adv.nota ?? '—'}</span>
                       </div>
-                      <p className="mb-4 text-xs text-slate-400">📍 {adv.cidadeAtuacao ?? '—'}{adv.estadoAtuacao ? `/${adv.estadoAtuacao}` : ''}</p>
+                      <p className="mb-2 text-xs text-slate-400">📍 {adv.cidadeAtuacao ?? '—'}{adv.estadoAtuacao ? `/${adv.estadoAtuacao}` : ''}</p>
+                      {adv.bio && <p className="mb-4 line-clamp-2 text-xs leading-relaxed text-slate-500">{adv.bio}</p>}
                       <button
                         type="button"
                         onClick={() => conectar(adv.id)}

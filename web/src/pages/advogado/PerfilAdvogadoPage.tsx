@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { advogadosService, areasService, processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { FormField } from '../../components/FormField';
@@ -24,8 +25,13 @@ export function PerfilAdvogadoPage() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [modalPlano, setModalPlano] = useState(false);
-  const [form, setForm] = useState({ nome: '', oab: '', estadoAtuacao: '', cidadeAtuacao: '' });
+  const [form, setForm] = useState({
+    nome: '', oab: '', estadoAtuacao: '', cidadeAtuacao: '',
+    escritorio: '', telefone: '', whatsapp: '', bio: '',
+    enderecoLogradouro: '', enderecoNumero: '', enderecoBairro: '', enderecoCep: '',
+  });
   const { mostrar } = useToast();
+  const novo = (useLocation().state as { novo?: boolean } | null)?.novo ?? false;
 
   function aplicarPerfil(p: any) {
     setPerfil(p);
@@ -34,8 +40,19 @@ export function PerfilAdvogadoPage() {
       oab: p.oab ?? '',
       estadoAtuacao: p.estadoAtuacao ?? '',
       cidadeAtuacao: p.cidadeAtuacao ?? '',
+      escritorio: p.escritorio ?? '',
+      telefone: p.telefone ?? '',
+      whatsapp: p.whatsapp ?? '',
+      bio: p.bio ?? '',
+      enderecoLogradouro: p.enderecoLogradouro ?? '',
+      enderecoNumero: p.enderecoNumero ?? '',
+      enderecoBairro: p.enderecoBairro ?? '',
+      enderecoCep: p.enderecoCep ?? '',
     });
   }
+
+  const campo = (c: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm({ ...form, [c]: e.target.value });
 
   useEffect(() => {
     Promise.all([advogadosService.meuPerfil(), processosService.quota(), areasService.listar()])
@@ -113,28 +130,74 @@ export function PerfilAdvogadoPage() {
       </div>
 
       <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-6 py-8 md:grid-cols-2">
+        {novo && (
+          <div className="rounded-2xl border border-secondary/40 bg-secondary/10 px-5 py-4 md:col-span-2">
+            <p className="font-bold text-primary">👋 Bem-vindo à Ponte Jurídica!</p>
+            <p className="mt-1 text-sm text-slate-600">Sua conta foi criada. Complete seu perfil (áreas de atuação, região e contato) para receber as melhores oportunidades.</p>
+          </div>
+        )}
         {/* Editar dados */}
         <div className="rounded-2xl border border-slate-100 bg-white p-6 md:col-span-2">
           <p className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Dados do perfil</p>
           <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
             <FormField label="Nome">
-              {(p) => <input {...p} className={INP} value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />}
+              {(p) => <input {...p} className={INP} value={form.nome} onChange={campo('nome')} />}
             </FormField>
             <FormField label="OAB">
-              {(p) => <input {...p} className={INP} value={form.oab} onChange={(e) => setForm({ ...form, oab: e.target.value })} />}
+              {(p) => <input {...p} className={INP} value={form.oab} onChange={campo('oab')} />}
+            </FormField>
+            <FormField label="Escritório / banca">
+              {(p) => <input {...p} className={INP} placeholder="Ex.: Ferreira & Associados" value={form.escritorio} onChange={campo('escritorio')} />}
+            </FormField>
+            <FormField label="Cidade de atuação">
+              {(p) => <input {...p} className={INP} value={form.cidadeAtuacao} onChange={campo('cidadeAtuacao')} />}
             </FormField>
             <FormField label="Estado de atuação (UF)">
               {(p) => <input {...p} className={INP} maxLength={2} value={form.estadoAtuacao} onChange={(e) => setForm({ ...form, estadoAtuacao: e.target.value.toUpperCase() })} />}
             </FormField>
-            <FormField label="Cidade de atuação">
-              {(p) => <input {...p} className={INP} value={form.cidadeAtuacao} onChange={(e) => setForm({ ...form, cidadeAtuacao: e.target.value })} />}
+          </div>
+
+          <p className="mb-2 mt-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+            Contato e endereço <span className="font-normal normal-case tracking-normal text-slate-400">🔒 só clientes vinculados veem</span>
+          </p>
+          <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+            <FormField label="Telefone">
+              {(p) => <input {...p} className={INP} placeholder="(11) 3000-0000" value={form.telefone} onChange={campo('telefone')} />}
+            </FormField>
+            <FormField label="WhatsApp">
+              {(p) => <input {...p} className={INP} placeholder="(11) 99000-0000" value={form.whatsapp} onChange={campo('whatsapp')} />}
+            </FormField>
+            <FormField label="Logradouro">
+              {(p) => <input {...p} className={INP} placeholder="Av. Paulista" value={form.enderecoLogradouro} onChange={campo('enderecoLogradouro')} />}
+            </FormField>
+            <FormField label="Número">
+              {(p) => <input {...p} className={INP} value={form.enderecoNumero} onChange={campo('enderecoNumero')} />}
+            </FormField>
+            <FormField label="Bairro">
+              {(p) => <input {...p} className={INP} value={form.enderecoBairro} onChange={campo('enderecoBairro')} />}
+            </FormField>
+            <FormField label="CEP">
+              {(p) => <input {...p} className={INP} placeholder="01310-100" value={form.enderecoCep} onChange={campo('enderecoCep')} />}
             </FormField>
           </div>
+
+          <div className="mt-4">
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Apresentação (bio) <span className="text-xs font-normal text-slate-400">— pública</span></label>
+            <textarea
+              className={`${INP} resize-y`}
+              rows={3}
+              maxLength={2000}
+              placeholder="Conte sua experiência e áreas de foco para os clientes."
+              value={form.bio}
+              onChange={campo('bio')}
+            />
+          </div>
+
           <button
             type="button"
             onClick={salvarDados}
             disabled={salvando}
-            className="mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60"
+            className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60"
           >
             {salvando ? 'Salvando...' : 'Salvar'}
           </button>

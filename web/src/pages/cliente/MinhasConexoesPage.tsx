@@ -92,6 +92,7 @@ export function MinhasConexoesPage() {
                     </div>
                     <div className="mt-3">
                       <h3 className="font-bold text-white text-base">{adv?.nome}</h3>
+                      {adv?.escritorio && <p className="text-white/80 text-xs mt-0.5">🏢 {adv.escritorio}</p>}
                       <p className="text-white/70 text-xs mt-0.5">
                         ⚖️ {adv?.areas?.join(', ') || '—'}
                       </p>
@@ -108,11 +109,21 @@ export function MinhasConexoesPage() {
                       </span>
                     </div>
 
+                    {adv?.bio && <p className="text-xs leading-relaxed text-slate-500">{adv.bio}</p>}
+
                     {/* Contatos (C5) — visíveis por haver vínculo */}
                     <div className="space-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
                       <p className="truncate">✉️ {adv?.email}</p>
                       {adv?.telefone && <p>📞 {adv.telefone}</p>}
                       {adv?.whatsapp && <p>💬 {adv.whatsapp}</p>}
+                      {(adv?.enderecoLogradouro || adv?.enderecoBairro) && (
+                        <p>
+                          📍 {[adv.enderecoLogradouro, adv.enderecoNumero].filter(Boolean).join(', ')}
+                          {adv.enderecoBairro ? ` — ${adv.enderecoBairro}` : ''}
+                          {adv.cidadeAtuacao && adv.estadoAtuacao ? ` · ${adv.cidadeAtuacao}/${adv.estadoAtuacao}` : ''}
+                          {adv.enderecoCep ? ` · CEP ${adv.enderecoCep}` : ''}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex gap-2 pt-1">

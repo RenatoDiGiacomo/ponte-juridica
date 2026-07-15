@@ -101,6 +101,29 @@ const RELATORIOS = [
   'Expedido alvará de levantamento em favor do cliente.',
 ];
 
+const ESCRITORIO_SUFIXOS = ['& Associados', 'Advocacia', 'Sociedade de Advogados', 'Advogados Associados', 'Consultoria Jurídica'];
+const LOGRADOUROS = ['Av. Paulista', 'Rua XV de Novembro', 'Av. Rio Branco', 'Rua da Consolação', 'Av. Brasil', 'Rua Sete de Setembro', 'Av. Getúlio Vargas', 'Rua Marechal Deodoro'];
+const BAIRROS = ['Centro', 'Bela Vista', 'Jardins', 'Savassi', 'Batel', 'Moema', 'Boa Viagem', 'Meireles'];
+const BIO_POR_AREA: Record<string, string> = {
+  Trabalhista: 'Atuo na defesa dos direitos de trabalhadores e empregadores, com atendimento ágil e transparente.',
+  Família: 'Conduzo casos de família com sensibilidade e técnica, buscando sempre a melhor solução para todos os envolvidos.',
+  Criminal: 'Defesa criminal técnica e combativa, com acompanhamento próximo em todas as fases do processo.',
+  Previdenciário: 'Especialista em benefícios do INSS, revisões e aposentadorias, com foco em resultados concretos.',
+  Cível: 'Atuação ampla em Direito Civil — contratos, consumidor e responsabilidade civil — com comunicação clara.',
+  Tributário: 'Planejamento e contencioso tributário para empresas e pessoas físicas, reduzindo riscos e custos.',
+};
+
+function dadosEscritorio(sobrenome: string, area: string) {
+  return {
+    escritorio: `${sobrenome} ${pick(ESCRITORIO_SUFIXOS)}`,
+    bio: BIO_POR_AREA[area] ?? 'Advogado(a) dedicado(a) ao atendimento próximo e à defesa dos interesses dos clientes.',
+    enderecoLogradouro: pick(LOGRADOUROS),
+    enderecoNumero: String(randInt(10, 2000)),
+    enderecoBairro: pick(BAIRROS),
+    enderecoCep: `${randInt(10, 99)}${randInt(100, 999)}-${randInt(100, 999)}`,
+  };
+}
+
 const MENSAGENS_PROPOSTA = [
   'Olá! Tenho ampla experiência em casos como o seu e posso conduzir sua demanda com atenção. Podemos conversar sobre os próximos passos?',
   'Analisei seu caso e vejo bons fundamentos. Trabalho com transparência e acompanhamento próximo. Fico à disposição para uma conversa.',
@@ -131,6 +154,8 @@ async function main() {
   const advData: {
     nome: string; email: string; senha: string; oab: string; planoId: number;
     nota: number; estadoAtuacao: string; cidadeAtuacao: string; telefone: string; whatsapp: string;
+    escritorio: string; bio: string; enderecoLogradouro: string; enderecoNumero: string;
+    enderecoBairro: string; enderecoCep: string;
     areaPrincipal: string; segundaArea?: string;
   }[] = [];
 
@@ -140,18 +165,21 @@ async function main() {
       nome: 'Dra. Maria Ferreira', email: 'maria.demo@pontejuridica.com', senha: senhaDemo,
       oab: '00001/SP', planoId: 2, nota: 4.8, estadoAtuacao: 'SP', cidadeAtuacao: 'São Paulo',
       telefone: '(11) 3000-0001', whatsapp: '(11) 99000-0001',
+      ...dadosEscritorio('Ferreira', 'Trabalhista'),
       areaPrincipal: 'Trabalhista', segundaArea: 'Previdenciário',
     },
     {
       nome: 'Dr. Carlos Mendes', email: 'carlos.demo@pontejuridica.com', senha: senhaDemo,
       oab: '00002/SP', planoId: 3, nota: 4.5, estadoAtuacao: 'SP', cidadeAtuacao: 'Campinas',
       telefone: '(19) 3000-0002', whatsapp: '(19) 99000-0002',
+      ...dadosEscritorio('Mendes', 'Criminal'),
       areaPrincipal: 'Criminal', segundaArea: 'Cível',
     },
     {
       nome: 'Dra. Juliana Costa', email: 'juliana.demo@pontejuridica.com', senha: senhaDemo,
       oab: '00003/SP', planoId: 1, nota: 3.9, estadoAtuacao: 'SP', cidadeAtuacao: 'Santos',
       telefone: '(13) 3000-0003', whatsapp: '(13) 99000-0003',
+      ...dadosEscritorio('Costa', 'Cível'),
       areaPrincipal: 'Cível',
     },
   );
@@ -179,6 +207,7 @@ async function main() {
       cidadeAtuacao: cidadeDaUf(uf),
       telefone: `(${randInt(11, 89)}) 3${randInt(100, 999)}-${randInt(1000, 9999)}`,
       whatsapp: `(${randInt(11, 89)}) 9${randInt(1000, 9999)}-${randInt(1000, 9999)}`,
+      ...dadosEscritorio(sobrenome, areaPrincipal),
       areaPrincipal,
       segundaArea: segunda,
     });
