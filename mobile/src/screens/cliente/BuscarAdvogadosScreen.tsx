@@ -16,9 +16,9 @@ export function BuscarAdvogadosScreen() {
   async function buscar() {
     setLoading(true);
     try {
-      const esp = filtro === 'Todos' ? undefined : filtro;
-      const { data } = await advogadosService.listar(esp);
-      setAdvogados(data);
+      const area = filtro === 'Todos' ? undefined : filtro;
+      const { data } = await advogadosService.buscar({ ...(area && { area }), page: 1, pageSize: 50 });
+      setAdvogados(data.data ?? data);
     } finally {
       setLoading(false);
     }
@@ -63,9 +63,15 @@ export function BuscarAdvogadosScreen() {
           renderItem={({ item }) => (
             <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
               <Text className="text-lg font-bold text-primary">{item.nome}</Text>
-              <Text className="text-secondary font-medium">{item.especializacao}</Text>
-              <Text className="text-gray-500 text-sm mt-1">OAB: {item.oab}</Text>
+              {item.escritorio ? <Text className="text-gray-500 text-xs">🏢 {item.escritorio}</Text> : null}
+              <Text className="text-secondary font-medium">{(item.areas ?? []).join(', ') || '—'}</Text>
+              <View className="flex-row flex-wrap gap-x-3 mt-1">
+                <Text className="text-gray-500 text-sm">OAB: {item.oab}</Text>
+                <Text className="text-gray-500 text-sm">★ {item.nota ?? '—'}</Text>
+                {item.cidadeAtuacao ? <Text className="text-gray-500 text-sm">📍 {item.cidadeAtuacao}{item.estadoAtuacao ? `/${item.estadoAtuacao}` : ''}</Text> : null}
+              </View>
               <Text className="text-gray-500 text-sm">Plano: {item.plano?.nome}</Text>
+              {item.bio ? <Text className="text-gray-500 text-xs mt-2" numberOfLines={2}>{item.bio}</Text> : null}
               <TouchableOpacity
                 onPress={() => conectar(item.id)}
                 className="bg-primary mt-3 py-2 rounded-xl items-center"

@@ -24,10 +24,27 @@ export const authService = {
 
 // Advogados
 export const advogadosService = {
-  listar: (especializacao?: string) =>
-    api.get('/advogados', { params: especializacao ? { especializacao } : {} }),
-  buscar: (id: number) => api.get(`/advogados/${id}`),
+  porId: (id: number) => api.get(`/advogados/${id}`),
+  buscar: (
+    params: { area?: string; notaMin?: number; estado?: string; vinculo?: string; page: number; pageSize: number },
+    signal?: AbortSignal,
+  ) => api.get('/advogados/buscar', { params, signal }),
   meuPerfil: () => api.get('/advogados/perfil'),
+  atualizarPerfil: (data: Record<string, string>) => api.patch('/advogados/perfil', data),
+  adicionarArea: (areaId: number) => api.post('/advogados/perfil/areas', { areaId }),
+  removerArea: (areaId: number) => api.delete(`/advogados/perfil/areas/${areaId}`),
+  trocarPlano: (planoId: number) => api.patch('/advogados/perfil/plano', { planoId }),
+};
+
+// Áreas
+export const areasService = {
+  listar: () => api.get<{ id: number; nome: string }[]>('/areas'),
+};
+
+// Clientes
+export const clientesService = {
+  meuPerfil: () => api.get('/clientes/perfil'),
+  atualizarPerfil: (data: Record<string, string>) => api.patch('/clientes/perfil', data),
 };
 
 // Planos
@@ -39,6 +56,9 @@ export const planosService = {
 export const conexoesService = {
   conectar: (advogadoId: number) => api.post(`/conexoes/${advogadoId}`),
   minhas: () => api.get('/conexoes'),
+  meusClientes: (params: { busca?: string; page: number; pageSize: number }, signal?: AbortSignal) =>
+    api.get('/conexoes/clientes', { params, signal }),
+  detalheCliente: (id: number) => api.get(`/conexoes/clientes/${id}`),
   remover: (id: number) => api.delete(`/conexoes/${id}`),
 };
 
@@ -52,13 +72,22 @@ export const processosService = {
   remover: (id: number) => api.delete(`/processos/${id}`),
   aceitarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/aceitar`),
   recusarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/recusar`),
+  encerrar: (processoId: number) => api.patch(`/processos/${processoId}/encerrar`),
   // advogado
-  abertos: (especializacao?: string) =>
-    api.get('/processos', { params: especializacao ? { especializacao } : {} }),
+  abertos: (
+    params: { area?: string; estados?: string; dataDe?: string; dataAte?: string; page?: number; pageSize?: number },
+    signal?: AbortSignal,
+  ) => api.get('/processos', { params, signal }),
   detalhe: (id: number) => api.get(`/processos/${id}`),
   enviarProposta: (
     processoId: number,
     data: { mensagem: string; valorEstimado: number },
   ) => api.post(`/processos/${processoId}/propostas`, data),
   quota: () => api.get('/propostas/quota'),
+  meusCasosAdvogado: () => api.get('/processos/advogado/meus-casos'),
+  adicionarRelatorio: (processoId: number, texto: string) =>
+    api.post(`/processos/${processoId}/relatorios`, { texto }),
+  editarRelatorio: (relatorioId: number, texto: string) =>
+    api.patch(`/relatorios/${relatorioId}`, { texto }),
+  removerRelatorio: (relatorioId: number) => api.delete(`/relatorios/${relatorioId}`),
 };

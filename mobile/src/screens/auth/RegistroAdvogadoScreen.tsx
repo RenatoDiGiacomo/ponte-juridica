@@ -10,8 +10,9 @@ const ESPECIALIZACOES = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tribu
 
 export function RegistroAdvogadoScreen({ navigation }: any) {
   const [form, setForm] = useState({
-    nome: '', email: '', oab: '', especializacao: '', planoId: 0, senha: '', confirmarSenha: '',
+    nome: '', email: '', oab: '', planoId: 0, senha: '', confirmarSenha: '',
   });
+  const [especializacoes, setEspecializacoes] = useState<string[]>([]);
   const [planos, setPlanos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { loginAdvogado } = useAuth();
@@ -24,9 +25,15 @@ export function RegistroAdvogadoScreen({ navigation }: any) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
+  function alternarEsp(esp: string) {
+    setEspecializacoes((prev) => (prev.includes(esp) ? prev.filter((x) => x !== esp) : [...prev, esp]));
+  }
+
   async function handleRegistro() {
-    if (!form.nome || !form.email || !form.oab || !form.especializacao || !form.planoId || !form.senha)
+    if (!form.nome || !form.email || !form.oab || !form.planoId || !form.senha)
       return Alert.alert('Preencha todos os campos');
+    if (especializacoes.length === 0)
+      return Alert.alert('Selecione ao menos uma especialização');
     if (form.senha !== form.confirmarSenha)
       return Alert.alert('As senhas não coincidem');
 
@@ -36,7 +43,7 @@ export function RegistroAdvogadoScreen({ navigation }: any) {
         nome: form.nome,
         email: form.email,
         oab: form.oab,
-        especializacao: form.especializacao,
+        areas: especializacoes,
         planoId: form.planoId,
         senha: form.senha,
       });
@@ -79,25 +86,26 @@ export function RegistroAdvogadoScreen({ navigation }: any) {
           </View>
         ))}
 
-        {/* Especialização */}
+        {/* Especializações (múltiplas) */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-700 mb-2">Especialização</Text>
+          <Text className="text-sm font-medium text-gray-700 mb-2">Especializações (uma ou mais)</Text>
           <View className="flex-row flex-wrap gap-2">
-            {ESPECIALIZACOES.map((esp) => (
-              <TouchableOpacity
-                key={esp}
-                onPress={() => set('especializacao', esp)}
-                className={`px-3 py-2 rounded-full border ${
-                  form.especializacao === esp
-                    ? 'bg-primary border-primary'
-                    : 'bg-white border-gray-300'
-                }`}
-              >
-                <Text className={form.especializacao === esp ? 'text-white font-medium' : 'text-gray-600'}>
-                  {esp}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {ESPECIALIZACOES.map((esp) => {
+              const marcado = especializacoes.includes(esp);
+              return (
+                <TouchableOpacity
+                  key={esp}
+                  onPress={() => alternarEsp(esp)}
+                  className={`px-3 py-2 rounded-full border ${
+                    marcado ? 'bg-primary border-primary' : 'bg-white border-gray-300'
+                  }`}
+                >
+                  <Text className={marcado ? 'text-white font-medium' : 'text-gray-600'}>
+                    {marcado ? '✓ ' : ''}{esp}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 

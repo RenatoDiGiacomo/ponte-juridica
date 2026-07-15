@@ -25,6 +25,7 @@ import { PerfilAdvogadoScreen } from './src/screens/advogado/PerfilAdvogadoScree
 import { ClientesAdvogadoScreen } from './src/screens/advogado/ClientesAdvogadoScreen';
 import { OportunidadesScreen } from './src/screens/advogado/OportunidadesScreen';
 import { EnviarPropostaScreen } from './src/screens/advogado/EnviarPropostaScreen';
+import { MeusCasosAdvogadoScreen } from './src/screens/advogado/MeusCasosAdvogadoScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -158,11 +159,11 @@ function ClienteTabs() {
         name="Conexoes"
         component={MinhasConexoesScreen}
         options={{
-          title: 'Meus Advogados',
-          tabBarLabel: 'Vinculados',
+          title: 'Meus Contatos',
+          tabBarLabel: 'Meus Contatos',
           tabBarIcon: tabIcon('🤝'),
           headerShown: true,
-          headerTitle: headerTituloComLogo('Meus Advogados'),
+          headerTitle: headerTituloComLogo('Meus Contatos'),
         }}
       />
       <Tab.Screen
@@ -187,6 +188,17 @@ function AdvogadoTabs() {
         name="Oportunidades"
         component={OportunidadesStack}
         options={{ tabBarLabel: 'Oportunidades', tabBarIcon: tabIcon('💼') }}
+      />
+      <Tab.Screen
+        name="MeusCasosAdv"
+        component={MeusCasosAdvogadoScreen}
+        options={{
+          title: 'Meus Casos',
+          tabBarLabel: 'Casos',
+          tabBarIcon: tabIcon('📁'),
+          headerShown: true,
+          headerTitle: headerTituloComLogo('Meus Casos'),
+        }}
       />
       <Tab.Screen
         name="Clientes"

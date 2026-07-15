@@ -47,7 +47,7 @@ export function MinhasConexoesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregar(); }} />}
         ListHeaderComponent={
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-primary">Meus Advogados</Text>
+            <Text className="text-lg font-bold text-primary">Meus Contatos</Text>
             <TouchableOpacity onPress={logout}>
               <Text className="text-red-500 text-sm font-medium">Sair</Text>
             </TouchableOpacity>
@@ -59,26 +59,44 @@ export function MinhasConexoesScreen() {
             <Text className="text-gray-300 text-sm mt-2">Busque um advogado e solicite contato</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
-                <Text className="text-primary text-lg font-bold">{item.advogado?.nome?.[0]}</Text>
+        renderItem={({ item }) => {
+          const adv = item.advogado ?? {};
+          const endereco = [adv.enderecoLogradouro, adv.enderecoNumero].filter(Boolean).join(', ')
+            + (adv.enderecoBairro ? ` — ${adv.enderecoBairro}` : '');
+          return (
+            <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
+              <View className="flex-row items-center">
+                <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
+                  <Text className="text-primary text-lg font-bold">{adv.nome?.[0]}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="font-bold text-gray-800">{adv.nome}</Text>
+                  {adv.escritorio ? <Text className="text-gray-500 text-xs">🏢 {adv.escritorio}</Text> : null}
+                  <Text className="text-secondary font-medium text-sm">{(adv.areas ?? []).join(', ') || '—'}</Text>
+                  <Text className="text-gray-400 text-xs">OAB: {adv.oab}</Text>
+                </View>
+                <TouchableOpacity onPress={() => remover(item.id)} className="p-2">
+                  <Text className="text-red-400 text-xl">×</Text>
+                </TouchableOpacity>
               </View>
-              <View className="flex-1">
-                <Text className="font-bold text-gray-800">{item.advogado?.nome}</Text>
-                <Text className="text-secondary font-medium text-sm">{item.advogado?.especializacao}</Text>
-                <Text className="text-gray-400 text-xs">OAB: {item.advogado?.oab}</Text>
+
+              {adv.bio ? <Text className="text-gray-500 text-xs mt-3">{adv.bio}</Text> : null}
+
+              <View className="mt-3 bg-gray-50 rounded-xl p-3 gap-1">
+                {adv.email ? <Text className="text-gray-600 text-xs">✉️ {adv.email}</Text> : null}
+                {adv.telefone ? <Text className="text-gray-600 text-xs">📞 {adv.telefone}</Text> : null}
+                {adv.whatsapp ? <Text className="text-gray-600 text-xs">💬 {adv.whatsapp}</Text> : null}
+                {endereco ? (
+                  <Text className="text-gray-600 text-xs">
+                    📍 {endereco}
+                    {adv.cidadeAtuacao && adv.estadoAtuacao ? ` · ${adv.cidadeAtuacao}/${adv.estadoAtuacao}` : ''}
+                    {adv.enderecoCep ? ` · CEP ${adv.enderecoCep}` : ''}
+                  </Text>
+                ) : null}
               </View>
-              <TouchableOpacity
-                onPress={() => remover(item.id)}
-                className="p-2"
-              >
-                <Text className="text-red-400 text-xl">×</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-        )}
+          );
+        }}
       />
     </View>
   );

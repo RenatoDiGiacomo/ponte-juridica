@@ -48,12 +48,12 @@ export function OportunidadesScreen({ navigation }: any) {
 
   async function carregar() {
     try {
-      const esp = filtro === 'Minha área' ? undefined : filtro;
+      const area = filtro === 'Minha área' ? undefined : filtro;
       const [{ data: lista }, { data: q }] = await Promise.all([
-        processosService.abertos(esp),
+        processosService.abertos({ ...(area && { area }), page: 1, pageSize: 100 }),
         processosService.quota(),
       ]);
-      setProcessos(lista);
+      setProcessos(lista.data ?? lista);
       setQuota(q);
     } catch (e: any) {
       Alert.alert('Erro', e.response?.data?.message ?? 'Falha ao carregar');

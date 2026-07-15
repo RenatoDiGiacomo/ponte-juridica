@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { processosService } from '../../services/api';
+import { mascaraMoeda, moedaParaNumero } from '../../utils/moeda';
 
 export function EnviarPropostaScreen({ route, navigation }: any) {
   const processo = route.params?.processo;
@@ -21,7 +22,7 @@ export function EnviarPropostaScreen({ route, navigation }: any) {
       Alert.alert('Atenção', 'Escreva uma mensagem de pelo menos 20 caracteres');
       return;
     }
-    const valorNum = Number(valor.replace(',', '.'));
+    const valorNum = moedaParaNumero(valor);
     if (!valorNum || valorNum <= 0) {
       Alert.alert('Atenção', 'Informe um valor estimado válido');
       return;
@@ -63,9 +64,9 @@ export function EnviarPropostaScreen({ route, navigation }: any) {
       <Text className="text-base font-semibold text-primary mb-1">Valor estimado (R$)</Text>
       <TextInput
         value={valor}
-        onChangeText={setValor}
-        placeholder="Ex: 1500"
-        keyboardType="decimal-pad"
+        onChangeText={(v) => setValor(mascaraMoeda(v))}
+        placeholder="0,00"
+        keyboardType="number-pad"
         className="bg-white rounded-xl p-3 mb-6 border border-gray-200"
       />
 
