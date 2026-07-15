@@ -135,4 +135,33 @@ export class AdvogadosService {
     await this.prisma.advogado.update({ where: { id: advogadoId }, data: { planoId } });
     return this.findPerfil(advogadoId);
   }
+
+  /** KPIs do advogado para o dashboard. */
+  async dashboard(advogadoId: number) {
+    const responsavelEm = (status: 'em_atendimento' | 'encerrado') => ({
+      status,
+      softDelete: false,
+      propostas: { some: { advogadoId, status: 'aceita' as const, softDelete: false } },
+    });
+    const [enviadas, aceitas, ativos, encerrados, clientes, aval, faturamento] = await Promise.all([
+      this.prisma.proposta.count({ where: { advogadoId, softDelete: false } }),
+      this.prisma.proposta.count({ where: { advogadoId, status: 'aceita', softDelete: false } }),
+      this.prisma.processo.count({ where: responsavelEm('em_atendimento') }),
+      this.prisma.processo.count({ where: responsavelEm('encerrado') }),
+      this.prisma.clienteAdvogado.count({ where: { advogadoId, softDelete: false } }),
+      this.prisma.avaliacao.aggregate({ where: { advogadoId, softDelete: false }, _avg: { nota: true }, _count: true }),
+      this.prisma.proposta.aggregate({ where: { advogadoId, status: 'aceita', softDelete: false }, _sum: { valorEstimado: true } }),
+    ]);
+    return {
+      propostasEnviadas: enviadas,
+      propostasAceitas: aceitas,
+      taxaAceite: enviadas ? Math.round((aceitas / enviadas) * 100) : 0,
+      casosAtivos: ativos,
+      casosEncerrados: encerrados,
+      clientesVinculados: clientes,
+      notaMedia: aval._avg.nota != null ? Math.round(aval._avg.nota * 10) / 10 : null,
+      totalAvaliacoes: aval._count,
+      faturamentoEstimado: Number(faturamento._sum.valorEstimado ?? 0),
+    };
+  }
 }

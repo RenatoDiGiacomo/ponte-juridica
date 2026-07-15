@@ -11,6 +11,8 @@ import { ProcessosModule } from './processos/processos.module';
 import { MidiaModule } from './midia/midia.module';
 import { AreasModule } from './areas/areas.module';
 import { ClientesModule } from './clientes/clientes.module';
+import { NotificacoesModule } from './notificacoes/notificacoes.module';
+import { AvaliacoesModule } from './avaliacoes/avaliacoes.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { ClientesModule } from './clientes/clientes.module';
     MidiaModule,
     AreasModule,
     ClientesModule,
+    NotificacoesModule,
+    AvaliacoesModule,
   ],
 })
 export class AppModule {}

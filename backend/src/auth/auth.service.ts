@@ -1,10 +1,12 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { RegisterClienteDto } from './dto/register-cliente.dto';
 import { RegisterAdvogadoDto } from './dto/register-advogado.dto';
+import { SolicitarResetDto, RedefinirSenhaDto } from './dto/reset-senha.dto';
 
 @Injectable()
 export class AuthService {
@@ -62,6 +64,45 @@ export class AuthService {
     });
     if (!a) throw new UnauthorizedException();
     return { ...a, tipo: 'advogado' as const };
+  }
+
+  /**
+   * Solicita redefinição de senha. Gera token com validade de 30min.
+   * MODO DEMO: como não há envio de e-mail configurado, o token é retornado na
+   * resposta para permitir concluir o fluxo. Não revela se o e-mail existe.
+   */
+  async solicitarReset(dto: SolicitarResetDto) {
+    const usuario =
+      dto.tipo === 'cliente'
+        ? await this.prisma.cliente.findFirst({ where: { email: dto.email, softDelete: false } })
+        : await this.prisma.advogado.findFirst({ where: { email: dto.email, softDelete: false } });
+
+    // Resposta neutra (não vaza existência do e-mail).
+    if (!usuario) return { enviado: true };
+
+    const token = randomBytes(24).toString('hex');
+    const expiraEm = new Date(Date.now() + 30 * 60_000);
+    await this.prisma.passwordReset.create({
+      data: { email: dto.email, tipo: dto.tipo, token, expiraEm },
+    });
+    // token exposto só por ser demo (sem SMTP).
+    return { enviado: true, token };
+  }
+
+  /** Redefine a senha a partir de um token válido e não usado. */
+  async redefinirSenha(dto: RedefinirSenhaDto) {
+    const reset = await this.prisma.passwordReset.findUnique({ where: { token: dto.token } });
+    if (!reset || reset.usado || reset.expiraEm < new Date())
+      throw new BadRequestException('Token inválido ou expirado');
+
+    const senha = await bcrypt.hash(dto.senha, 10);
+    if (reset.tipo === 'cliente') {
+      await this.prisma.cliente.updateMany({ where: { email: reset.email }, data: { senha } });
+    } else {
+      await this.prisma.advogado.updateMany({ where: { email: reset.email }, data: { senha } });
+    }
+    await this.prisma.passwordReset.update({ where: { id: reset.id }, data: { usado: true } });
+    return { ok: true };
   }
 
   async registrarAdvogado(dto: RegisterAdvogadoDto) {

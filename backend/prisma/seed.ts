@@ -124,6 +124,17 @@ function dadosEscritorio(sobrenome: string, area: string) {
   };
 }
 
+const COMENTARIOS_AVALIACAO = [
+  'Excelente atendimento, resolveu meu caso com agilidade.',
+  'Profissional muito atencioso e competente. Recomendo!',
+  'Conduziu o processo com clareza e me manteve sempre informado.',
+  'Ótimo trabalho, superou minhas expectativas.',
+  'Bom acompanhamento, fiquei satisfeito com o resultado.',
+  'Atendimento cordial e técnico. Voltaria a contratar.',
+  'Dedicado e transparente do início ao fim.',
+  'Explicou cada etapa em linguagem simples. Muito bom.',
+];
+
 const MENSAGENS_PROPOSTA = [
   'Olá! Tenho ampla experiência em casos como o seu e posso conduzir sua demanda com atenção. Podemos conversar sobre os próximos passos?',
   'Analisei seu caso e vejo bons fundamentos. Trabalho com transparência e acompanhamento próximo. Fico à disposição para uma conversa.',
@@ -477,6 +488,35 @@ async function main() {
   await casoShowcase(mariana!.id, ufMar, cidMar, 'Trabalhista', 'aberto', null, pickN(outrosTrab, 2));
 
   console.log('✓ Showcase das contas demo (maria/carlos/juliana + joão/mariana) criado');
+
+  // ── Avaliações: cliente avalia o advogado em casos ENCERRADOS ──────────────
+  const encerrados = await prisma.processo.findMany({
+    where: { status: 'encerrado', softDelete: false },
+    select: { id: true, clienteId: true, propostas: { where: { status: 'aceita', softDelete: false }, select: { advogadoId: true } } },
+  });
+  let nAval = 0;
+  for (const p of encerrados) {
+    const advId = p.propostas[0]?.advogadoId;
+    if (!advId || !chance(0.85)) continue; // ~85% dos encerrados são avaliados
+    const nota = chance(0.65) ? 5 : chance(0.6) ? 4 : 3;
+    try {
+      await prisma.avaliacao.create({
+        data: { processoId: p.id, clienteId: p.clienteId, advogadoId: advId, nota, comentario: pick(COMENTARIOS_AVALIACAO) },
+      });
+      nAval++;
+    } catch {
+      // ignora duplicidade (1 avaliação por caso/cliente)
+    }
+  }
+  // Recalcula a nota dos advogados que receberam avaliações (média real).
+  const medias = await prisma.avaliacao.groupBy({ by: ['advogadoId'], where: { softDelete: false }, _avg: { nota: true } });
+  for (const m of medias) {
+    await prisma.advogado.update({
+      where: { id: m.advogadoId },
+      data: { nota: m._avg.nota != null ? Math.round(m._avg.nota * 10) / 10 : null },
+    });
+  }
+  console.log(`✓ ${nAval} avaliações (nota dos advogados recalculada)`);
 
   console.log('\nContas demo (senha: senha123):');
   console.log('  Advogado: maria.demo@pontejuridica.com');

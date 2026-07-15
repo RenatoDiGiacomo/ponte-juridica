@@ -39,6 +39,7 @@ model Cliente {
   softDelete    Boolean           @default(false) @map("soft_delete")
   conexoes      ClienteAdvogado[]
   processos     Processo[]
+  avaliacoes    Avaliacao[]
 
   @@map("cliente")
 }
@@ -70,6 +71,7 @@ model Advogado {
   propostas      Proposta[]
   areas          AdvogadoArea[]
   relatorios     RelatorioCaso[]
+  avaliacoes     Avaliacao[]
 
   @@map("adv")
 }
@@ -126,6 +128,7 @@ model Processo {
   cliente        Cliente        @relation(fields: [clienteId], references: [id])
   propostas      Proposta[]
   relatorios     RelatorioCaso[]
+  avaliacoes     Avaliacao[]
 
   @@index([especializacao, status, softDelete])
   @@map("processo")
@@ -172,4 +175,51 @@ enum PropostaStatus {
   pendente
   aceita
   recusada
+}
+
+// Avaliação do advogado pelo cliente, após um caso encerrado (1 por caso/cliente).
+model Avaliacao {
+  id          Int      @id @default(autoincrement())
+  processoId  Int      @map("id_processo")
+  clienteId   Int      @map("id_cliente")
+  advogadoId  Int      @map("id_advogado")
+  nota        Int      // 1 a 5
+  comentario  String?  @db.Text
+  dataCriacao DateTime @default(now()) @map("data_criacao")
+  softDelete  Boolean  @default(false) @map("soft_delete")
+  processo    Processo @relation(fields: [processoId], references: [id])
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  advogado    Advogado @relation(fields: [advogadoId], references: [id])
+
+  @@unique([processoId, clienteId])
+  @@index([advogadoId, softDelete])
+  @@map("avaliacao")
+}
+
+// Notificação in-app para cliente ou advogado (destinatário polimórfico por tipo).
+model Notificacao {
+  id               Int      @id @default(autoincrement())
+  destinatarioId   Int      @map("id_destinatario")
+  destinatarioTipo String   @map("destinatario_tipo") @db.VarChar(10) // cliente | advogado
+  tipo             String   @db.VarChar(30) // proposta_aceita, nova_proposta, novo_relatorio, ...
+  titulo           String   @db.VarChar(150)
+  mensagem         String   @db.Text
+  lida             Boolean  @default(false)
+  dataCriacao      DateTime @default(now()) @map("data_criacao")
+
+  @@index([destinatarioId, destinatarioTipo, lida])
+  @@map("notificacao")
+}
+
+// Token de redefinição de senha (cliente ou advogado). Demo: token retornado na resposta.
+model PasswordReset {
+  id          Int      @id @default(autoincrement())
+  email       String   @db.VarChar(255)
+  tipo        String   @db.VarChar(10) // cliente | advogado
+  token       String   @unique @db.VarChar(100)
+  expiraEm    DateTime @map("expira_em")
+  usado       Boolean  @default(false)
+  dataCriacao DateTime @default(now()) @map("data_criacao")
+
+  @@map("password_reset")
 }

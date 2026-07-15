@@ -75,6 +75,14 @@ export class AdvogadosController {
     return this.advogados.buscar(q, clienteId);
   }
 
+  @Get('dashboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Métricas (KPIs) do advogado logado' })
+  dashboard(@UsuarioAtual() u: { id: number }) {
+    return this.advogados.dashboard(u.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Ver perfil público de um advogado' })
   findOne(@Param('id', ParseIntPipe) id: number) {

@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterClienteDto } from './dto/register-cliente.dto';
 import { RegisterAdvogadoDto } from './dto/register-advogado.dto';
+import { SolicitarResetDto, RedefinirSenhaDto } from './dto/reset-senha.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsuarioAtual } from '../common/decorators/usuario-atual.decorator';
 
@@ -42,5 +43,17 @@ export class AuthController {
   @ApiOperation({ summary: 'Cadastro de novo advogado' })
   registrarAdvogado(@Body() dto: RegisterAdvogadoDto) {
     return this.auth.registrarAdvogado(dto);
+  }
+
+  @Post('reset/solicitar')
+  @ApiOperation({ summary: 'Solicita redefinição de senha (retorna token — modo demo, sem SMTP)' })
+  solicitarReset(@Body() dto: SolicitarResetDto) {
+    return this.auth.solicitarReset(dto);
+  }
+
+  @Post('reset/redefinir')
+  @ApiOperation({ summary: 'Redefine a senha a partir de um token válido' })
+  redefinirSenha(@Body() dto: RedefinirSenhaDto) {
+    return this.auth.redefinirSenha(dto);
   }
 }

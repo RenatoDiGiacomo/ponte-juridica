@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificacoesService } from '../notificacoes/notificacoes.service';
 import { CriarProcessoDto } from './dto/criar-processo.dto';
 import { CriarPropostaDto } from './dto/criar-proposta.dto';
 import { OportunidadesQueryDto } from './dto/oportunidades-query.dto';
@@ -21,7 +22,10 @@ const LIMITE_PROPOSTAS_POR_PLANO: Record<string, number | null> = {
 
 @Injectable()
 export class ProcessosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificacoes: NotificacoesService,
+  ) {}
 
   /** Quanto o advogado já usou no mês corrente vs. limite do plano. */
   async quotaMensal(advogadoId: number) {
@@ -79,6 +83,10 @@ export class ProcessosService {
           include: {
             advogado: { select: { id: true, nome: true, oab: true } },
           },
+        },
+        avaliacoes: {
+          where: { clienteId, softDelete: false },
+          select: { id: true, nota: true, comentario: true },
         },
       },
     });
@@ -190,7 +198,7 @@ export class ProcessosService {
       );
     }
 
-    return this.prisma.proposta.create({
+    const proposta = await this.prisma.proposta.create({
       data: {
         processoId,
         advogadoId,
@@ -198,6 +206,14 @@ export class ProcessosService {
         valorEstimado: dto.valorEstimado,
       },
     });
+    await this.notificacoes.criar(
+      processo.clienteId,
+      'cliente',
+      'nova_proposta',
+      'Nova proposta recebida',
+      `Você recebeu uma nova proposta no caso "${processo.titulo}".`,
+    );
+    return proposta;
   }
 
   async aceitarProposta(propostaId: number, clienteId: number) {
@@ -215,7 +231,7 @@ export class ProcessosService {
     // Só desliga se AUTO_RECUSAR_PROPOSTAS_AO_ACEITAR === 'false'.
     const autoRecusar = process.env.AUTO_RECUSAR_PROPOSTAS_AO_ACEITAR !== 'false';
 
-    return this.prisma.$transaction(async (tx) => {
+    const resultado = await this.prisma.$transaction(async (tx) => {
       const aceita = await tx.proposta.update({
         where: { id: propostaId },
         data: { status: 'aceita' },
@@ -247,6 +263,15 @@ export class ProcessosService {
       }
       return aceita;
     });
+
+    await this.notificacoes.criar(
+      proposta.advogadoId,
+      'advogado',
+      'proposta_aceita',
+      'Proposta aceita! 🎉',
+      `Sua proposta no caso "${proposta.processo.titulo}" foi aceita. Você agora é o advogado responsável.`,
+    );
+    return resultado;
   }
 
   async recusarProposta(propostaId: number, clienteId: number) {
@@ -317,9 +342,23 @@ export class ProcessosService {
     });
     if (!responsavel)
       throw new ForbiddenException('Apenas o advogado responsável pode registrar relatórios');
-    return this.prisma.relatorioCaso.create({
+    const relatorio = await this.prisma.relatorioCaso.create({
       data: { processoId, advogadoId, texto },
     });
+    const proc = await this.prisma.processo.findUnique({
+      where: { id: processoId },
+      select: { clienteId: true, titulo: true },
+    });
+    if (proc) {
+      await this.notificacoes.criar(
+        proc.clienteId,
+        'cliente',
+        'novo_relatorio',
+        'Atualização no seu caso',
+        `Há um novo relatório de situação no caso "${proc.titulo}".`,
+      );
+    }
+    return relatorio;
   }
 
   /** Busca um relatório garantindo que pertence ao advogado (autoria). */
