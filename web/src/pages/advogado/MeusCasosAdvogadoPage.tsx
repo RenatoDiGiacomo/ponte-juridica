@@ -21,7 +21,8 @@ const STATUS_OPCOES: { label: string; valor: CasoStatus | 'todos' }[] = [
   { label: 'Encerrado', valor: 'encerrado' },
 ];
 
-const DATE_INPUT = 'min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600';
+// Input de data sobre o hero navy (mesmo padrão visual da tela de Clientes)
+const DATE_INPUT = 'min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-blue-100 [color-scheme:dark]';
 
 type Relatorio = { id: number; texto: string; dataCriacao: string; advogado: { nome: string } };
 type MinhaProposta = { id: number; status: string; valorEstimado: string };
@@ -161,7 +162,7 @@ export function MeusCasosAdvogadoPage() {
     <div className="min-h-screen bg-slate-50">
       <Navbar items={NAV} />
 
-      {/* Hero — apenas título/contagem; filtros movidos para a área de conteúdo */}
+      {/* Hero — título + filtros (mesmo padrão visual da tela de Clientes) */}
       <div className="bg-primary">
         <div className="mx-auto max-w-6xl px-6 py-6">
           <h1 className="text-xl font-bold text-white">Meus Casos</h1>
@@ -169,33 +170,33 @@ export function MeusCasosAdvogadoPage() {
             {loading ? '...' : `${casos.length} ${casos.length === 1 ? 'caso' : 'casos'}`}
           </p>
         </div>
+        {!loading && casos.length > 0 && (
+          <div className="mx-auto max-w-6xl px-6 pb-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <FilterChips opcoes={STATUS_OPCOES} valor={filtro} onChange={setFiltro} variante="escuro" />
+              <label className="flex items-center gap-1 text-xs text-blue-200">
+                De
+                <input type="date" aria-label="Criado a partir de" value={dataDe} max={dataAte || undefined} onChange={(e) => setDataDe(e.target.value)} className={DATE_INPUT} />
+              </label>
+              <label className="flex items-center gap-1 text-xs text-blue-200">
+                Até
+                <input type="date" aria-label="Criado até" value={dataAte} min={dataDe || undefined} onChange={(e) => setDataAte(e.target.value)} className={DATE_INPUT} />
+              </label>
+              {(dataDe || dataAte || filtro !== 'todos') && (
+                <button
+                  type="button"
+                  onClick={() => { setFiltro('todos'); setDataDe(''); setDataAte(''); }}
+                  className="min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-blue-100 hover:bg-white/20"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-6">
-        {/* Barra de filtros (status + intervalo de datas) */}
-        {!loading && casos.length > 0 && (
-          <div className="mb-5 flex flex-wrap items-center gap-3">
-            <FilterChips opcoes={STATUS_OPCOES} valor={filtro} onChange={setFiltro} />
-            <label className="flex items-center gap-1 text-xs text-slate-500">
-              De
-              <input type="date" aria-label="Criado a partir de" value={dataDe} max={dataAte || undefined} onChange={(e) => setDataDe(e.target.value)} className={DATE_INPUT} />
-            </label>
-            <label className="flex items-center gap-1 text-xs text-slate-500">
-              Até
-              <input type="date" aria-label="Criado até" value={dataAte} min={dataDe || undefined} onChange={(e) => setDataAte(e.target.value)} className={DATE_INPUT} />
-            </label>
-            {(dataDe || dataAte || filtro !== 'todos') && (
-              <button
-                type="button"
-                onClick={() => { setFiltro('todos'); setDataDe(''); setDataAte(''); }}
-                className="min-h-10 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
-              >
-                Limpar
-              </button>
-            )}
-          </div>
-        )}
-
         {loading ? (
           <p className="py-16 text-center text-sm text-slate-400">Carregando...</p>
         ) : casos.length === 0 ? (

@@ -79,6 +79,7 @@ export const processosService = {
   abertos: (
     params: {
       area?: string;
+      areas?: string;
       postadoDias?: number;
       dataDe?: string;
       dataAte?: string;

@@ -109,12 +109,13 @@ export class ProcessosService {
     }
 
     const estados = q.estados?.length ? q.estados : q.estado ? [q.estado] : [];
+    const areasFiltro = q.areas?.length ? q.areas : q.area ? [q.area] : [];
 
     const where: Prisma.ProcessoWhereInput = {
       softDelete: false,
       status: 'aberto',
-      ...(q.area
-        ? { especializacao: q.area }
+      ...(areasFiltro.length
+        ? { especializacao: { in: areasFiltro } }
         : minhasAreas.length
           ? { especializacao: { in: minhasAreas } }
           : {}),

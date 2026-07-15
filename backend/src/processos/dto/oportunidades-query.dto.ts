@@ -4,10 +4,19 @@ import { IsArray, IsInt, IsISO8601, IsOptional, IsString, Min } from 'class-vali
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 export class OportunidadesQueryDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ description: 'Área específica (sobrepõe o default = áreas do advogado)' })
+  @ApiPropertyOptional({ description: 'Área específica (sobrepõe o default — legado, único)' })
   @IsOptional()
   @IsString()
   area?: string;
+
+  @ApiPropertyOptional({ description: 'Áreas específicas (múltiplas, separadas por vírgula; sobrepõe o default)' })
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',').map((v) => v.trim()).filter(Boolean) : value,
+  )
+  @IsArray()
+  @IsString({ each: true })
+  areas?: string[];
 
   @ApiPropertyOptional({ description: 'Postado nos últimos N dias (atalho; use dataDe/dataAte p/ intervalo)' })
   @IsOptional()

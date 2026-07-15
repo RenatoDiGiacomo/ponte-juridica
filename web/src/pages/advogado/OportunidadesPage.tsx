@@ -17,14 +17,16 @@ const NAV = [
   { label: 'Meu Perfil', to: '/perfil' },
 ];
 
-const AREAS = ['', 'Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
+const AREAS = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
+const AREA_OPCOES = AREAS.map((a) => ({ valor: a, label: a }));
 const UFS = ['SP', 'RJ', 'MG', 'RS', 'BA', 'PR', 'SC', 'DF', 'PE', 'CE'];
 const UF_OPCOES = UFS.map((u) => ({ valor: u, label: u }));
 const QTDS = [20, 30, 50, 100];
-const SELECT = 'min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600';
+// Controles sobre o hero navy (mesmo padrão visual da tela de Clientes / Meus Casos do cliente)
+const INPUT_ESCURO = 'min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-blue-100 placeholder:text-blue-200 [color-scheme:dark]';
 
-type Filtros = { area: string; dataDe: string; dataAte: string; estados: string[]; cidade: string };
-const FILTROS_VAZIOS: Filtros = { area: '', dataDe: '', dataAte: '', estados: [], cidade: '' };
+type Filtros = { areas: string[]; dataDe: string; dataAte: string; estados: string[]; cidade: string };
+const FILTROS_VAZIOS: Filtros = { areas: [], dataDe: '', dataAte: '', estados: [], cidade: '' };
 
 type ProcessoAberto = {
   id: number; titulo: string; descricao: string; especializacao: string;
@@ -61,7 +63,7 @@ export function OportunidadesPage() {
           {
             page,
             pageSize,
-            ...(aplicados.area && { area: aplicados.area }),
+            ...(aplicados.areas.length && { areas: aplicados.areas.join(',') }),
             ...(aplicados.dataDe && { dataDe: aplicados.dataDe }),
             ...(aplicados.dataAte && { dataAte: aplicados.dataAte }),
             ...(aplicados.estados.length && { estados: aplicados.estados.join(',') }),
@@ -120,6 +122,40 @@ export function OportunidadesPage() {
           <h1 className="text-xl font-bold text-white">Oportunidades</h1>
           <p className="mt-0.5 text-sm text-blue-200">Casos abertos — por padrão, das suas áreas de atuação</p>
         </div>
+        {/* Filtros no hero (mesmo padrão visual da tela de Clientes) */}
+        <div className="mx-auto max-w-6xl px-6 pb-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <MultiSelect placeholder="Minhas áreas" opcoes={AREA_OPCOES} selecionados={draft.areas} onChange={(areas) => setDraft({ ...draft, areas })} variante="escuro" />
+            <label className="flex items-center gap-1 text-xs text-blue-200">
+              De
+              <input type="date" aria-label="Postado a partir de" value={draft.dataDe} max={draft.dataAte || undefined} onChange={(e) => setDraft({ ...draft, dataDe: e.target.value })} className={INPUT_ESCURO} />
+            </label>
+            <label className="flex items-center gap-1 text-xs text-blue-200">
+              Até
+              <input type="date" aria-label="Postado até" value={draft.dataAte} min={draft.dataDe || undefined} onChange={(e) => setDraft({ ...draft, dataAte: e.target.value })} className={INPUT_ESCURO} />
+            </label>
+            <MultiSelect placeholder="Todos os estados" opcoes={UF_OPCOES} selecionados={draft.estados} onChange={(estados) => setDraft({ ...draft, estados })} variante="escuro" />
+            <input aria-label="Cidade" value={draft.cidade} onChange={(e) => setDraft({ ...draft, cidade: e.target.value })} placeholder="Cidade" className={INPUT_ESCURO} />
+            <button type="button" onClick={() => setAplicados(draft)} className="min-h-10 rounded-lg bg-secondary px-4 py-2 text-sm font-bold text-primary hover:bg-secondary/90">
+              Aplicar
+            </button>
+            {(aplicados.areas.length || aplicados.dataDe || aplicados.dataAte || aplicados.estados.length || aplicados.cidade) && (
+              <button
+                type="button"
+                onClick={() => { setDraft(FILTROS_VAZIOS); setAplicados(FILTROS_VAZIOS); }}
+                className="min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-blue-100 hover:bg-white/20"
+              >
+                Limpar
+              </button>
+            )}
+            <div className="flex items-center gap-2 text-xs text-blue-200">
+              Exibir:
+              <select aria-label="Quantidade por página" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} className={INPUT_ESCURO}>
+                {QTDS.map((q) => <option key={q} value={q} className="text-slate-800">{q}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-6">
@@ -136,41 +172,6 @@ export function OportunidadesPage() {
             </div>
           </button>
         )}
-
-        {/* Filtros compostos com Aplicar (advogado) */}
-        <div className="mb-5 flex flex-wrap items-center gap-3">
-          <select aria-label="Área" value={draft.area} onChange={(e) => setDraft({ ...draft, area: e.target.value })} className={SELECT}>
-            {AREAS.map((a) => <option key={a} value={a}>{a === '' ? 'Minhas áreas' : a}</option>)}
-          </select>
-          <label className="flex items-center gap-1 text-xs text-slate-500">
-            De
-            <input type="date" aria-label="Postado a partir de" value={draft.dataDe} max={draft.dataAte || undefined} onChange={(e) => setDraft({ ...draft, dataDe: e.target.value })} className={SELECT} />
-          </label>
-          <label className="flex items-center gap-1 text-xs text-slate-500">
-            Até
-            <input type="date" aria-label="Postado até" value={draft.dataAte} min={draft.dataDe || undefined} onChange={(e) => setDraft({ ...draft, dataAte: e.target.value })} className={SELECT} />
-          </label>
-          <MultiSelect placeholder="Todos os estados" opcoes={UF_OPCOES} selecionados={draft.estados} onChange={(estados) => setDraft({ ...draft, estados })} />
-          <input aria-label="Cidade" value={draft.cidade} onChange={(e) => setDraft({ ...draft, cidade: e.target.value })} placeholder="Cidade" className={SELECT} />
-          <button type="button" onClick={() => setAplicados(draft)} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90">
-            Aplicar
-          </button>
-          {(aplicados.area || aplicados.dataDe || aplicados.dataAte || aplicados.estados.length || aplicados.cidade) && (
-            <button
-              type="button"
-              onClick={() => { setDraft(FILTROS_VAZIOS); setAplicados(FILTROS_VAZIOS); }}
-              className="min-h-10 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
-            >
-              Limpar
-            </button>
-          )}
-          <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
-            Exibir:
-            <select aria-label="Quantidade por página" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} className={SELECT}>
-              {QTDS.map((q) => <option key={q} value={q}>{q}</option>)}
-            </select>
-          </div>
-        </div>
 
         {!loading && <p className="mb-4 text-sm text-slate-500"><span className="font-bold text-slate-800">{total}</span> {total === 1 ? 'caso' : 'casos'}</p>}
 
