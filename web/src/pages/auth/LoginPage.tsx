@@ -11,11 +11,11 @@ type DemoUser = {
 };
 
 const DEMO_USERS: DemoUser[] = [
-  { label: 'João Silva', tipo: 'cliente', email: 'cliente.demo@pontejuridica.com', icon: '👤', hint: 'Caso em atendimento + propostas pendentes' },
-  { label: 'Mariana Souza', tipo: 'cliente', email: 'mariana@pontejuridica.com', icon: '👤', hint: 'Caso de Família com proposta' },
+  { label: 'João Silva', tipo: 'cliente', email: 'cliente.demo@pontejuridica.com', icon: '👤', hint: 'Casos em atendimento + propostas e contatos' },
+  { label: 'Mariana Souza', tipo: 'cliente', email: 'mariana.demo@pontejuridica.com', icon: '👤', hint: 'Casos de Família e Cível com propostas' },
   { label: 'Dra. Maria Ferreira', tipo: 'advogado', email: 'maria.demo@pontejuridica.com', icon: '⚖️', hint: 'Trabalhista · plano Profissional (20/mês)' },
-  { label: 'Dra. Juliana Costa', tipo: 'advogado', email: 'juliana@pontejuridica.com', icon: '⚖️', hint: 'Cível · plano Básico (5/mês)' },
-  { label: 'Dr. Carlos Mendes', tipo: 'advogado', email: 'carlos@pontejuridica.com', icon: '⚖️', hint: 'Criminal · plano Elite (ilimitado)' },
+  { label: 'Dra. Juliana Costa', tipo: 'advogado', email: 'juliana.demo@pontejuridica.com', icon: '⚖️', hint: 'Cível · plano Básico (5/mês)' },
+  { label: 'Dr. Carlos Mendes', tipo: 'advogado', email: 'carlos.demo@pontejuridica.com', icon: '⚖️', hint: 'Criminal · plano Elite (ilimitado)' },
 ];
 
 const SENHA_DEMO = 'senha123';

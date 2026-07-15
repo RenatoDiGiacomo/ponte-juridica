@@ -4,6 +4,7 @@ import { Navbar } from '../../components/Navbar';
 import { StatusBadge, type CasoStatus } from '../../components/StatusBadge';
 import { EmptyState } from '../../components/EmptyState';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { FilterChips } from '../../components/FilterChips';
 import { useToast } from '../../components/Toast';
 
 const NAV = [
@@ -13,12 +14,14 @@ const NAV = [
   { label: 'Meu Perfil', to: '/perfil' },
 ];
 
-const FILTROS: { label: string; status: CasoStatus | 'todos' }[] = [
-  { label: 'Todos', status: 'todos' },
-  { label: 'Aberto', status: 'aberto' },
-  { label: 'Em atendimento', status: 'em_atendimento' },
-  { label: 'Encerrado', status: 'encerrado' },
+const STATUS_OPCOES: { label: string; valor: CasoStatus | 'todos' }[] = [
+  { label: 'Todos', valor: 'todos' },
+  { label: 'Aberto', valor: 'aberto' },
+  { label: 'Em atendimento', valor: 'em_atendimento' },
+  { label: 'Encerrado', valor: 'encerrado' },
 ];
+
+const DATE_INPUT = 'min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600';
 
 type Relatorio = { id: number; texto: string; dataCriacao: string; advogado: { nome: string } };
 type MinhaProposta = { id: number; status: string; valorEstimado: string };
@@ -39,11 +42,19 @@ export function MeusCasosAdvogadoPage() {
   const [casos, setCasos] = useState<Caso[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<CasoStatus | 'todos'>('todos');
+  const [dataDe, setDataDe] = useState('');
+  const [dataAte, setDataAte] = useState('');
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [texto, setTexto] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [encerrarId, setEncerrarId] = useState<number | null>(null);
   const [encerrando, setEncerrando] = useState(false);
+  // edição/exclusão de relatório
+  const [editandoRelId, setEditandoRelId] = useState<number | null>(null);
+  const [editTexto, setEditTexto] = useState('');
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  const [relExcluirId, setRelExcluirId] = useState<number | null>(null);
+  const [excluindoRel, setExcluindoRel] = useState(false);
   const { mostrar } = useToast();
 
   const carregar = useCallback(async () => {
@@ -55,10 +66,17 @@ export function MeusCasosAdvogadoPage() {
     carregar().finally(() => setLoading(false));
   }, [carregar]);
 
-  const filtrados = useMemo(
-    () => (filtro === 'todos' ? casos : casos.filter((c) => c.status === filtro)),
-    [casos, filtro],
-  );
+  const filtrados = useMemo(() => {
+    const de = dataDe ? new Date(`${dataDe}T00:00:00`) : null;
+    const ate = dataAte ? new Date(`${dataAte}T23:59:59`) : null;
+    return casos.filter((c) => {
+      if (filtro !== 'todos' && c.status !== filtro) return false;
+      const d = new Date(c.dataCriacao);
+      if (de && d < de) return false;
+      if (ate && d > ate) return false;
+      return true;
+    });
+  }, [casos, filtro, dataDe, dataAte]);
 
   useEffect(() => {
     if (loading) return;
@@ -88,6 +106,42 @@ export function MeusCasosAdvogadoPage() {
     }
   }
 
+  function iniciarEdicao(r: Relatorio) {
+    setEditandoRelId(r.id);
+    setEditTexto(r.texto);
+  }
+
+  async function salvarEdicao() {
+    if (editandoRelId === null || editTexto.trim().length < 3) return;
+    setSalvandoEdicao(true);
+    try {
+      await processosService.editarRelatorio(editandoRelId, editTexto.trim());
+      setEditandoRelId(null);
+      setEditTexto('');
+      mostrar('Relatório atualizado', 'sucesso');
+      await carregar();
+    } catch (e: any) {
+      mostrar(e.response?.data?.message ?? 'Falha ao atualizar', 'erro');
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  }
+
+  async function confirmarExclusaoRel() {
+    if (relExcluirId === null) return;
+    setExcluindoRel(true);
+    try {
+      await processosService.removerRelatorio(relExcluirId);
+      setRelExcluirId(null);
+      mostrar('Relatório excluído', 'sucesso');
+      await carregar();
+    } catch (e: any) {
+      mostrar(e.response?.data?.message ?? 'Falha ao excluir', 'erro');
+    } finally {
+      setExcluindoRel(false);
+    }
+  }
+
   async function confirmarEncerramento() {
     if (encerrarId === null) return;
     setEncerrando(true);
@@ -107,6 +161,7 @@ export function MeusCasosAdvogadoPage() {
     <div className="min-h-screen bg-slate-50">
       <Navbar items={NAV} />
 
+      {/* Hero — apenas título/contagem; filtros movidos para a área de conteúdo */}
       <div className="bg-primary">
         <div className="mx-auto max-w-6xl px-6 py-6">
           <h1 className="text-xl font-bold text-white">Meus Casos</h1>
@@ -114,25 +169,33 @@ export function MeusCasosAdvogadoPage() {
             {loading ? '...' : `${casos.length} ${casos.length === 1 ? 'caso' : 'casos'}`}
           </p>
         </div>
-        <div className="mx-auto max-w-6xl px-6 pb-5">
-          <div className="flex flex-wrap gap-2">
-            {FILTROS.map((f) => (
-              <button
-                key={f.status}
-                type="button"
-                onClick={() => setFiltro(f.status)}
-                className={`rounded-lg px-4 py-2 text-xs font-semibold ${
-                  filtro === f.status ? 'bg-white text-primary' : 'border border-white/20 bg-white/10 text-blue-100'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-6">
+        {/* Barra de filtros (status + intervalo de datas) */}
+        {!loading && casos.length > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <FilterChips opcoes={STATUS_OPCOES} valor={filtro} onChange={setFiltro} />
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              De
+              <input type="date" aria-label="Criado a partir de" value={dataDe} max={dataAte || undefined} onChange={(e) => setDataDe(e.target.value)} className={DATE_INPUT} />
+            </label>
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              Até
+              <input type="date" aria-label="Criado até" value={dataAte} min={dataDe || undefined} onChange={(e) => setDataAte(e.target.value)} className={DATE_INPUT} />
+            </label>
+            {(dataDe || dataAte || filtro !== 'todos') && (
+              <button
+                type="button"
+                onClick={() => { setFiltro('todos'); setDataDe(''); setDataAte(''); }}
+                className="min-h-10 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <p className="py-16 text-center text-sm text-slate-400">Carregando...</p>
         ) : casos.length === 0 ? (
@@ -225,10 +288,53 @@ export function MeusCasosAdvogadoPage() {
                     <div className="space-y-2">
                       {sel.relatorios.map((r) => (
                         <div key={r.id} className="rounded-xl border border-slate-100 p-3">
-                          <p className="text-sm text-slate-700">{r.texto}</p>
-                          <p className="mt-1 text-[11px] text-slate-400">
-                            {r.advogado.nome} · {new Date(r.dataCriacao).toLocaleString('pt-BR')}
-                          </p>
+                          {editandoRelId === r.id ? (
+                            <div>
+                              <textarea
+                                value={editTexto}
+                                onChange={(e) => setEditTexto(e.target.value)}
+                                aria-label="Editar relatório"
+                                rows={3}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                              />
+                              <div className="mt-2 flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={salvarEdicao}
+                                  disabled={salvandoEdicao || editTexto.trim().length < 3}
+                                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary/90 disabled:opacity-50"
+                                >
+                                  {salvandoEdicao ? 'Salvando...' : 'Salvar'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditandoRelId(null); setEditTexto(''); }}
+                                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-sm text-slate-700">{r.texto}</p>
+                              <div className="mt-1 flex items-center justify-between gap-2">
+                                <p className="text-[11px] text-slate-400">
+                                  {r.advogado.nome} · {new Date(r.dataCriacao).toLocaleString('pt-BR')}
+                                </p>
+                                {souResponsavel && (
+                                  <div className="flex shrink-0 gap-2">
+                                    <button type="button" onClick={() => iniciarEdicao(r)} className="text-[11px] font-semibold text-primary hover:underline">
+                                      Editar
+                                    </button>
+                                    <button type="button" onClick={() => setRelExcluirId(r.id)} className="text-[11px] font-semibold text-erro hover:underline">
+                                      Excluir
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -249,6 +355,17 @@ export function MeusCasosAdvogadoPage() {
         carregando={encerrando}
         onConfirmar={confirmarEncerramento}
         onCancelar={() => setEncerrarId(null)}
+      />
+
+      <ConfirmModal
+        aberto={relExcluirId !== null}
+        titulo="Excluir relatório"
+        mensagem="Deseja excluir este relatório de situação? Esta ação não pode ser desfeita."
+        textoConfirmar="Excluir"
+        variante="reforcado"
+        carregando={excluindoRel}
+        onConfirmar={confirmarExclusaoRel}
+        onCancelar={() => setRelExcluirId(null)}
       />
     </div>
   );

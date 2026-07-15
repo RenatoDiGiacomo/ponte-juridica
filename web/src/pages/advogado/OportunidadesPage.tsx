@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { processosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { Modal } from '../../components/Modal';
+import { MultiSelect } from '../../components/MultiSelect';
 import { TrocarPlanoModal } from '../../components/TrocarPlanoModal';
 import { Pagination } from '../../components/Pagination';
 import { EmptyState } from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
+import { mascaraMoeda, moedaParaNumero } from '../../utils/moeda';
 import { usePaginatedQuery, type Paginated } from '../../hooks/usePaginatedQuery';
 
 const NAV = [
@@ -16,10 +18,13 @@ const NAV = [
 ];
 
 const AREAS = ['', 'Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
-const UFS = ['', 'SP', 'RJ', 'MG', 'RS', 'BA', 'PR', 'SC', 'DF'];
-const TEMPOS = [{ v: '', l: 'Qualquer data' }, { v: '7', l: 'Últimos 7 dias' }, { v: '30', l: 'Últimos 30 dias' }, { v: '90', l: 'Últimos 90 dias' }];
+const UFS = ['SP', 'RJ', 'MG', 'RS', 'BA', 'PR', 'SC', 'DF', 'PE', 'CE'];
+const UF_OPCOES = UFS.map((u) => ({ valor: u, label: u }));
 const QTDS = [20, 30, 50, 100];
 const SELECT = 'min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600';
+
+type Filtros = { area: string; dataDe: string; dataAte: string; estados: string[]; cidade: string };
+const FILTROS_VAZIOS: Filtros = { area: '', dataDe: '', dataAte: '', estados: [], cidade: '' };
 
 type ProcessoAberto = {
   id: number; titulo: string; descricao: string; especializacao: string;
@@ -32,8 +37,8 @@ export function OportunidadesPage() {
   const [quota, setQuota] = useState<Quota | null>(null);
   const [quantidade, setQuantidade] = useState(20);
   // filtros aplicados (deps) vs. rascunho (UI) — advogado usa botão "Aplicar"
-  const [aplicados, setAplicados] = useState({ area: '', postadoDias: '', estado: '', cidade: '' });
-  const [draft, setDraft] = useState({ area: '', postadoDias: '', estado: '', cidade: '' });
+  const [aplicados, setAplicados] = useState<Filtros>(FILTROS_VAZIOS);
+  const [draft, setDraft] = useState<Filtros>(FILTROS_VAZIOS);
   const { mostrar } = useToast();
 
   // modal de proposta
@@ -57,8 +62,9 @@ export function OportunidadesPage() {
             page,
             pageSize,
             ...(aplicados.area && { area: aplicados.area }),
-            ...(aplicados.postadoDias && { postadoDias: Number(aplicados.postadoDias) }),
-            ...(aplicados.estado && { estado: aplicados.estado }),
+            ...(aplicados.dataDe && { dataDe: aplicados.dataDe }),
+            ...(aplicados.dataAte && { dataAte: aplicados.dataAte }),
+            ...(aplicados.estados.length && { estados: aplicados.estados.join(',') }),
             ...(aplicados.cidade && { cidade: aplicados.cidade }),
           },
           signal,
@@ -83,7 +89,7 @@ export function OportunidadesPage() {
     setErroModal('');
     if (!modalProcesso) return;
     if (mensagem.trim().length < 20) return setErroModal('Mensagem precisa ter ao menos 20 caracteres');
-    const valorNum = Number(valor.replace(',', '.'));
+    const valorNum = moedaParaNumero(valor);
     if (!valorNum || valorNum <= 0) return setErroModal('Informe um valor válido');
     setEnviando(true);
     try {
@@ -136,16 +142,28 @@ export function OportunidadesPage() {
           <select aria-label="Área" value={draft.area} onChange={(e) => setDraft({ ...draft, area: e.target.value })} className={SELECT}>
             {AREAS.map((a) => <option key={a} value={a}>{a === '' ? 'Minhas áreas' : a}</option>)}
           </select>
-          <select aria-label="Tempo de postagem" value={draft.postadoDias} onChange={(e) => setDraft({ ...draft, postadoDias: e.target.value })} className={SELECT}>
-            {TEMPOS.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
-          </select>
-          <select aria-label="Estado" value={draft.estado} onChange={(e) => setDraft({ ...draft, estado: e.target.value })} className={SELECT}>
-            {UFS.map((u) => <option key={u} value={u}>{u === '' ? 'Todos os estados' : u}</option>)}
-          </select>
+          <label className="flex items-center gap-1 text-xs text-slate-500">
+            De
+            <input type="date" aria-label="Postado a partir de" value={draft.dataDe} max={draft.dataAte || undefined} onChange={(e) => setDraft({ ...draft, dataDe: e.target.value })} className={SELECT} />
+          </label>
+          <label className="flex items-center gap-1 text-xs text-slate-500">
+            Até
+            <input type="date" aria-label="Postado até" value={draft.dataAte} min={draft.dataDe || undefined} onChange={(e) => setDraft({ ...draft, dataAte: e.target.value })} className={SELECT} />
+          </label>
+          <MultiSelect placeholder="Todos os estados" opcoes={UF_OPCOES} selecionados={draft.estados} onChange={(estados) => setDraft({ ...draft, estados })} />
           <input aria-label="Cidade" value={draft.cidade} onChange={(e) => setDraft({ ...draft, cidade: e.target.value })} placeholder="Cidade" className={SELECT} />
           <button type="button" onClick={() => setAplicados(draft)} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90">
             Aplicar
           </button>
+          {(aplicados.area || aplicados.dataDe || aplicados.dataAte || aplicados.estados.length || aplicados.cidade) && (
+            <button
+              type="button"
+              onClick={() => { setDraft(FILTROS_VAZIOS); setAplicados(FILTROS_VAZIOS); }}
+              className="min-h-10 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
+            >
+              Limpar
+            </button>
+          )}
           <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
             Exibir:
             <select aria-label="Quantidade por página" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} className={SELECT}>
@@ -192,7 +210,18 @@ export function OportunidadesPage() {
         <form onSubmit={enviarProposta} className="space-y-4">
           <p className="text-sm text-slate-500">{modalProcesso?.descricao}</p>
           <textarea value={mensagem} onChange={(e) => setMensagem(e.target.value)} placeholder="Apresente-se e diga como pode ajudar (mín. 20 caracteres)." rows={4} className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          <input type="text" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Valor estimado (R$)" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">R$</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={valor}
+              onChange={(e) => setValor(mascaraMoeda(e.target.value))}
+              placeholder="0,00"
+              aria-label="Valor estimado (R$)"
+              className="w-full rounded-lg border border-slate-200 py-2 pl-10 pr-3 text-sm"
+            />
+          </div>
           {erroModal && <p role="alert" className="text-sm text-erro">⚠️ {erroModal}</p>}
           <div className="flex gap-2">
             <button type="submit" disabled={enviando} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60">

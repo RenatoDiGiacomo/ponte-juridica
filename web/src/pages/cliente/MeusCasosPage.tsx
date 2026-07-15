@@ -8,8 +8,10 @@ import { StatusBadge, type CasoStatus } from '../../components/StatusBadge';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { FilterChips } from '../../components/FilterChips';
+import { MultiSelect } from '../../components/MultiSelect';
 
 const AREAS = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
+const AREA_OPCOES = AREAS.map((a) => ({ valor: a, label: a }));
 const STATUS_OPCOES: { label: string; valor: CasoStatus | 'todos' }[] = [
   { label: 'Todos', valor: 'todos' },
   { label: 'Aberto', valor: 'aberto' },
@@ -25,7 +27,7 @@ function menorValor(p: { propostas: { valorEstimado: string }[] }): number {
 const NAV = [
   { label: 'Meus Casos', to: '/' },
   { label: 'Encontrar Advogado', to: '/buscar' },
-  { label: 'Vinculados', to: '/minhas-conexoes' },
+  { label: 'Meus Contatos', to: '/minhas-conexoes' },
   { label: 'Minha Conta', to: '/perfil' },
 ];
 
@@ -59,7 +61,8 @@ export function MeusCasosPage() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
   const [statusFiltro, setStatusFiltro] = useState<CasoStatus | 'todos'>('todos');
-  const [tipoFiltro, setTipoFiltro] = useState('');
+  const [areasFiltro, setAreasFiltro] = useState<string[]>([]);
+  const [estadosFiltro, setEstadosFiltro] = useState<string[]>([]);
   const [ordemValor, setOrdemValor] = useState<'' | 'asc' | 'desc'>('');
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [propostaConfirmar, setPropostaConfirmar] = useState<Proposta | null>(null);
@@ -77,12 +80,18 @@ export function MeusCasosPage() {
     carregar().finally(() => setLoading(false));
   }, [carregar]);
 
+  const estadosDisponiveis = useMemo(
+    () => [...new Set(processos.map((p) => p.estado).filter((e): e is string => !!e))].sort(),
+    [processos],
+  );
+
   const filtrados = useMemo(() => {
     let lista = processos.filter(
       (p) =>
         (busca === '' || p.titulo.toLowerCase().includes(busca.toLowerCase())) &&
         (statusFiltro === 'todos' || p.status === statusFiltro) &&
-        (tipoFiltro === '' || p.especializacao === tipoFiltro),
+        (areasFiltro.length === 0 || areasFiltro.includes(p.especializacao)) &&
+        (estadosFiltro.length === 0 || (p.estado != null && estadosFiltro.includes(p.estado))),
     );
     if (ordemValor) {
       lista = [...lista].sort((a, b) =>
@@ -90,7 +99,7 @@ export function MeusCasosPage() {
       );
     }
     return lista;
-  }, [processos, busca, statusFiltro, tipoFiltro, ordemValor]);
+  }, [processos, busca, statusFiltro, areasFiltro, estadosFiltro, ordemValor]);
 
   // Pré-seleciona o 1º caso da lista filtrada em tela larga (≥1024px); preserva seleção válida.
   useEffect(() => {
@@ -167,17 +176,16 @@ export function MeusCasosPage() {
           <div className="mx-auto max-w-6xl px-6 pb-5">
             <div className="flex flex-wrap items-center gap-3">
               <FilterChips opcoes={STATUS_OPCOES} valor={statusFiltro} onChange={setStatusFiltro} variante="escuro" />
-              <select
-                aria-label="Filtrar por tipo de processo"
-                value={tipoFiltro}
-                onChange={(e) => setTipoFiltro(e.target.value)}
-                className="min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100"
-              >
-                <option value="" className="text-slate-800">Todas as áreas</option>
-                {AREAS.map((a) => (
-                  <option key={a} value={a} className="text-slate-800">{a}</option>
-                ))}
-              </select>
+              <MultiSelect placeholder="Minhas áreas" opcoes={AREA_OPCOES} selecionados={areasFiltro} onChange={setAreasFiltro} variante="escuro" />
+              {estadosDisponiveis.length > 1 && (
+                <MultiSelect
+                  placeholder="Todos os estados"
+                  opcoes={estadosDisponiveis.map((e) => ({ valor: e, label: e }))}
+                  selecionados={estadosFiltro}
+                  onChange={setEstadosFiltro}
+                  variante="escuro"
+                />
+              )}
               <select
                 aria-label="Ordenar por valor"
                 value={ordemValor}

@@ -18,6 +18,12 @@
 
 /* Modal sobre <dialog> nativo: foco preso/Esc/backdrop nativos + transição suave (@starting-style) */
 dialog.modal-dialog {
+  /* O preflight do Tailwind zera `margin`, quebrando a centralização nativa do <dialog>.
+     inset:0 + margin:auto recentraliza o modal (horizontal e vertical) em todas as telas. */
+  inset: 0;
+  margin: auto;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   opacity: 0;
   transform: scale(0.97);
   transition:

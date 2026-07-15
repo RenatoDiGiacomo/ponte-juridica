@@ -61,6 +61,7 @@ export const conexoesService = {
   minhas: () => api.get('/conexoes'),
   meusClientes: (params: { busca?: string; page: number; pageSize: number }, signal?: AbortSignal) =>
     api.get('/conexoes/clientes', { params, signal }),
+  detalheCliente: (id: number) => api.get(`/conexoes/clientes/${id}`),
   remover: (id: number) => api.delete(`/conexoes/${id}`),
 };
 
@@ -76,7 +77,16 @@ export const processosService = {
   encerrar: (processoId: number) => api.patch(`/processos/${processoId}/encerrar`),
   // advogado
   abertos: (
-    params: { area?: string; postadoDias?: number; estado?: string; cidade?: string; page: number; pageSize: number },
+    params: {
+      area?: string;
+      postadoDias?: number;
+      dataDe?: string;
+      dataAte?: string;
+      estados?: string;
+      cidade?: string;
+      page: number;
+      pageSize: number;
+    },
     signal?: AbortSignal,
   ) => api.get('/processos', { params, signal }),
   detalhe: (id: number) => api.get(`/processos/${id}`),
@@ -88,4 +98,7 @@ export const processosService = {
   meusCasosAdvogado: () => api.get('/processos/advogado/meus-casos'),
   adicionarRelatorio: (processoId: number, texto: string) =>
     api.post(`/processos/${processoId}/relatorios`, { texto }),
+  editarRelatorio: (relatorioId: number, texto: string) =>
+    api.patch(`/relatorios/${relatorioId}`, { texto }),
+  removerRelatorio: (relatorioId: number) => api.delete(`/relatorios/${relatorioId}`),
 };

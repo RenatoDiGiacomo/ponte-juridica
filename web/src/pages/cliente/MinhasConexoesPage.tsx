@@ -7,7 +7,7 @@ import { useToast } from '../../components/Toast';
 const NAV = [
   { label: 'Meus Casos', to: '/' },
   { label: 'Encontrar Advogado', to: '/buscar' },
-  { label: 'Vinculados', to: '/minhas-conexoes' },
+  { label: 'Meus Contatos', to: '/minhas-conexoes' },
   { label: 'Minha Conta', to: '/perfil' },
 ];
 
@@ -47,9 +47,9 @@ export function MinhasConexoesPage() {
       {/* Hero */}
       <div className="bg-primary">
         <div className="max-w-6xl mx-auto px-6 py-10">
-          <h1 className="text-2xl font-bold text-white">Meus Advogados</h1>
+          <h1 className="text-2xl font-bold text-white">Meus Contatos</h1>
           <p className="text-blue-200 mt-1 text-sm">
-            {loading ? '...' : `${conexoes.length} ${conexoes.length === 1 ? 'advogado vinculado' : 'advogados vinculados'}`}
+            {loading ? '...' : `${conexoes.length} ${conexoes.length === 1 ? 'advogado' : 'advogados'}`}
           </p>
         </div>
       </div>
