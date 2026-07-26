@@ -123,9 +123,9 @@ const headerTituloComLogo = (titulo: string) => () => (
 );
 
 const baseTabScreenOptions = {
-  tabBarActiveTintColor: '#1a3a5c',
-  tabBarInactiveTintColor: '#9CA3AF',
-  tabBarStyle: { height: 88, paddingTop: 12, paddingBottom: 14 },
+  tabBarActiveTintColor: '#ffffff',
+  tabBarInactiveTintColor: '#7e9bbd',
+  tabBarStyle: { height: 88, paddingTop: 12, paddingBottom: 14, backgroundColor: '#1a3a5c', borderTopWidth: 0 },
   tabBarLabelStyle: { fontSize: 12, fontWeight: '600' as const, marginTop: 6 },
   headerShown: false,
 };

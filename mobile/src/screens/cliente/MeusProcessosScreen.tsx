@@ -192,13 +192,13 @@ export function MeusProcessosScreen({ navigation }: any) {
         />
       )}
 
-      {/* FAB publicar caso (gold, glifo centralizado) */}
+      {/* FAB publicar caso (azul, glifo centralizado) */}
       <TouchableOpacity
         onPress={() => navigation.navigate('CriarProcesso')}
-        className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-secondary shadow-lg"
+        className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg"
         accessibilityLabel="Publicar novo caso"
       >
-        <Text className="text-3xl font-light text-primary" style={{ marginTop: -2 }}>+</Text>
+        <Text className="text-3xl font-light text-white" style={{ marginTop: -2 }}>+</Text>
       </TouchableOpacity>
 
       <ConfirmModal
