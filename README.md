@@ -67,6 +67,7 @@ npm run start:dev           # API em http://localhost:3333
 ```
 
 > **Mantenha esse terminal aberto.** Abra outro terminal pro próximo passo.
+> 🔄 **Recarregar a base de demo do zero** (dados ricos: avaliações, propostas canceladas, encerramentos com motivo): pare a API e rode `npx prisma migrate reset --force`.
 
 ### 5. Web
 
@@ -96,34 +97,42 @@ Tudo certo se essas 3 URLs respondem:
 
 **Senha de todos: `senha123`**
 
-Na tela de login há **atalhos clicáveis** pra cada perfil — não precisa digitar nada.
+Na tela de login há **atalhos clicáveis** pra cada perfil — não precisa digitar nada. Funciona igual no web e no mobile.
 
 | Perfil | E-mail | Plano | Pra mostrar |
 |---|---|---|---|
-| Cliente | `cliente.demo@pontejuridica.com` | — | tem caso em atendimento + propostas pendentes |
-| Cliente | `mariana@pontejuridica.com` | — | caso de Família com proposta |
-| Advogado | `maria.demo@pontejuridica.com` | Profissional | trabalhista, vê 20/mês |
-| Advogado | `juliana@pontejuridica.com` | **Básico** | cível, limite 5/mês |
-| Advogado | `carlos@pontejuridica.com` | **Elite** | criminal, ilimitado |
+| Cliente | `cliente.demo@pontejuridica.com` | — | casos em atendimento/encerrado, propostas pendentes, **1 proposta cancelada** e **contatos** |
+| Cliente | `mariana.demo@pontejuridica.com` | — | casos de Família e Cível |
+| Advogado | `maria.demo@pontejuridica.com` | Profissional | Trabalhista · **Painel rico** (34 propostas, R$58k), 12 clientes |
+| Advogado | `juliana.demo@pontejuridica.com` | **Básico** | Cível · limite 5/mês (upsell) |
+| Advogado | `carlos.demo@pontejuridica.com` | **Elite** | Criminal · ilimitado |
+
+> São as **5 contas estáveis** do seed (sempre com esses e-mails). Os demais ~78 advogados/148 clientes têm e-mail aleatório a cada reseed.
 
 ---
 
-## Roteiro de demo (5 min)
+## Destaques para a apresentação (pontos de "uau")
 
-1. **Login como cliente** (`cliente.demo`) → home **Meus Casos** mostra:
-   - 1 caso "em atendimento" (proposta já aceita)
-   - 1 caso aberto com propostas pendentes (badge vermelho na nav)
-2. Clica **+ Publicar caso** → cria caso novo de "Trabalhista"
-3. **Sair** (canto superior direito)
-4. **Login como advogado trabalhista** (`maria.demo`) → home **Oportunidades**:
-   - banner do plano mostra `X / 20 propostas usadas neste mês`
-   - vê o caso novo no topo do feed
-5. Clica **Enviar proposta** → preenche mensagem e valor → envia
-6. **Sair**, voltar como cliente (`cliente.demo`)
-7. **Meus Casos** → vê a proposta nova → **Aceitar**
-8. Vínculo criado: aparece em **Vinculados** do cliente E em **Meus Clientes** do advogado
+- **Painel do advogado** — KPIs + **gráfico de barras mensal** (enviadas × aceitas) com **navegação por Ano/Mês** (setas). Loga como `maria.demo` e abre direto no Painel.
+- **Avaliações reais** — cliente avalia o advogado em caso encerrado (estrelas + comentário); a **nota** do advogado é a média real.
+- **Notificações** — sino no topo (proposta aceita, novo relatório, nova avaliação…).
+- **Editar / cancelar proposta** — advogado gerencia a própria proposta; cancelar exige **justificativa exibida ao cliente**.
+- **Encerrar caso com justificativa** — motivo aparece pro cliente.
+- **Checkout simulado** de plano + **recuperação de senha** (fluxo em 2 passos).
+- **Mobile em paridade** — mesmo fluxo no app (Expo), incl. Painel do advogado, uploads de foto/documento e onboarding.
 
-**Bônus:** logue como `juliana@pontejuridica.com` (Básico) pra ver o banner em vermelho/âmbar quando o limite mensal apertar — argumento de upsell pro Profissional/Elite.
+## Roteiro de demo (~6 min)
+
+1. **Advogado** (`maria.demo`) → cai no **Painel**: mostre os KPIs, o **gráfico** e a **navegação por mês/ano**.
+2. **Oportunidades** → um caso com **card verde "proposta enviada"**: abra, **edite** e mostre o **cancelar com justificativa**. Em outro caso, **Enviar proposta**.
+3. **Meus Casos** → abra um caso "em atendimento": registre um **relatório**; **encerre** informando a **justificativa**.
+4. **Sair** (canto superior direito).
+5. **Cliente** (`cliente.demo`) → **Meus Casos**: veja a proposta recém-enviada e **Aceite** (cria o vínculo). Mostre também a **proposta cancelada** (com o motivo) e um caso **encerrado com o motivo**.
+6. Num caso **encerrado**, clique **⭐ Avaliar o advogado** (estrelas + comentário).
+7. **Encontrar Advogado** → busque **por nome**, filtre **áreas** (multiseleção). Solicite contato → aparece em **Meus Contatos**.
+8. Toque no **🔔 sino** pra mostrar as notificações geradas no caminho.
+
+**Bônus:** `juliana.demo` (Básico) → banner de cota em vermelho/âmbar = **upsell** pro Profissional/Elite (clique em Gerenciar plano → **checkout simulado**). E o **"Esqueci minha senha"** no login.
 
 ---
 
@@ -134,7 +143,7 @@ O mesmo fluxo está implementado em React Native com Expo. Útil pra mostrar a v
 ```bash
 cd mobile
 npm install
-npx expo start
+npx expo start -c     # -c limpa o cache do Metro (use sempre após npm install)
 ```
 
 Opções de uso após rodar:
@@ -144,6 +153,8 @@ Opções de uso após rodar:
 - **QR code** → abre no celular real via app **Expo Go** (Play Store / App Store)
 
 > ⚠️ Pra testar **no celular real**, ele precisa estar na **mesma rede Wi-Fi** do computador. O Expo cuida do resto.
+> 💡 Se o app **não abrir** ou der "unable to resolve module", rode `npx expo install --fix` e depois `npx expo start -c`.
+> Os **atalhos de login demo** funcionam igual no app.
 
 ---
 
