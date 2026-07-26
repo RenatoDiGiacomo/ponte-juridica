@@ -17,6 +17,46 @@ Marketplace que conecta clientes a advogados especializados.
 
 ---
 
+## ⚡ Subir tudo (resumo de comandos)
+
+Pré-requisitos: **Docker Desktop** rodando, **Node 18+**. Use **um terminal por serviço**.
+
+```bash
+# 0) Banco (MySQL :3306 + Adminer :8080)
+docker-compose up -d
+
+# 1) Backend  → API em http://localhost:3333   (1ª vez: copie o .env)
+cd backend
+npm install
+cp .env.example .env                 # Windows PowerShell: Copy-Item .env.example .env
+npx prisma migrate dev               # cria as tabelas (1ª vez)
+npm run seed                         # popula dados de demo (1ª vez)
+npm run start:dev                    # deixe rodando
+
+# 2) Web  → http://localhost:5173     (outro terminal)
+cd web
+npm install
+npm run dev
+
+# 3) Mobile (opcional)  → Expo         (outro terminal)
+cd mobile
+npm install
+npx expo start -c                    # -c limpa o cache (use após npm install)
+```
+
+**🔄 Resetar a base de demo (dados ricos: avaliações, propostas canceladas, encerramentos com motivo):**
+
+```bash
+# pare a API (Ctrl+C no terminal do backend) e rode:
+cd backend
+npx prisma migrate reset --force     # zera + recria + reseed automaticamente
+npm run start:dev                    # sobe a API de novo
+```
+
+> Detalhes, credenciais de demo, roteiro e troubleshooting nas seções abaixo.
+
+---
+
 ## Setup rápido (web — recomendado para os colegas)
 
 ### 1. Pré-requisitos
