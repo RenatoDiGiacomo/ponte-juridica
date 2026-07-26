@@ -16,6 +16,7 @@ import { ProcessosService } from './processos.service';
 import { CriarProcessoDto } from './dto/criar-processo.dto';
 import { CriarPropostaDto } from './dto/criar-proposta.dto';
 import { CriarRelatorioDto } from './dto/criar-relatorio.dto';
+import { EncerrarCasoDto, CancelarPropostaDto } from './dto/justificativa.dto';
 import { OportunidadesQueryDto } from './dto/oportunidades-query.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsuarioAtual } from '../common/decorators/usuario-atual.decorator';
@@ -105,6 +106,28 @@ export class ProcessosController {
     return this.processos.aceitarProposta(id, u.id);
   }
 
+  @Patch('propostas/:id/cancelar')
+  @ApiOperation({ summary: 'Advogado cancela a própria proposta (com justificativa)' })
+  cancelarProposta(
+    @UsuarioAtual() u: Usuario,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CancelarPropostaDto,
+  ) {
+    exigirAdvogado(u);
+    return this.processos.cancelarProposta(id, u.id, dto.justificativa);
+  }
+
+  @Patch('propostas/:id')
+  @ApiOperation({ summary: 'Advogado edita a própria proposta (mensagem/valor)' })
+  editarProposta(
+    @UsuarioAtual() u: Usuario,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CriarPropostaDto,
+  ) {
+    exigirAdvogado(u);
+    return this.processos.editarProposta(id, u.id, dto);
+  }
+
   @Patch('propostas/:id/recusar')
   @ApiOperation({ summary: 'Cliente recusa uma proposta' })
   recusar(@UsuarioAtual() u: Usuario, @Param('id', ParseIntPipe) id: number) {
@@ -113,9 +136,13 @@ export class ProcessosController {
   }
 
   @Patch('processos/:id/encerrar')
-  @ApiOperation({ summary: 'Encerrar caso (cliente dono OU advogado responsável)' })
-  encerrar(@UsuarioAtual() u: Usuario, @Param('id', ParseIntPipe) id: number) {
-    return this.processos.encerrarCaso(id, u);
+  @ApiOperation({ summary: 'Encerrar caso (cliente dono OU advogado responsável); justificativa opcional' })
+  encerrar(
+    @UsuarioAtual() u: Usuario,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: EncerrarCasoDto,
+  ) {
+    return this.processos.encerrarCaso(id, u, dto.justificativa);
   }
 
   @Get('processos/advogado/meus-casos')

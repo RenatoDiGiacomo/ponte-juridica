@@ -97,7 +97,8 @@ export const processosService = {
   remover: (id: number) => api.delete(`/processos/${id}`),
   aceitarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/aceitar`),
   recusarProposta: (propostaId: number) => api.patch(`/propostas/${propostaId}/recusar`),
-  encerrar: (processoId: number) => api.patch(`/processos/${processoId}/encerrar`),
+  encerrar: (processoId: number, justificativa?: string) =>
+    api.patch(`/processos/${processoId}/encerrar`, justificativa ? { justificativa } : {}),
   // advogado
   abertos: (
     params: {
@@ -118,6 +119,10 @@ export const processosService = {
     processoId: number,
     data: { mensagem: string; valorEstimado: number },
   ) => api.post(`/processos/${processoId}/propostas`, data),
+  editarProposta: (propostaId: number, data: { mensagem: string; valorEstimado: number }) =>
+    api.patch(`/propostas/${propostaId}`, data),
+  cancelarProposta: (propostaId: number, justificativa: string) =>
+    api.patch(`/propostas/${propostaId}/cancelar`, { justificativa }),
   quota: () => api.get<{ plano: string; limite: number | null; usadas: number; restantes: number | null }>('/propostas/quota'),
   meusCasosAdvogado: () => api.get('/processos/advogado/meus-casos'),
   adicionarRelatorio: (processoId: number, texto: string) =>

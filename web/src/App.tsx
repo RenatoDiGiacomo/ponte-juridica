@@ -48,8 +48,8 @@ function AppRoutes() {
   if (tipo === 'advogado') {
     return (
       <Routes>
-        <Route path="/" element={<OportunidadesPage />} />
-        <Route path="/painel" element={<DashboardAdvogadoPage />} />
+        <Route path="/" element={<DashboardAdvogadoPage />} />
+        <Route path="/oportunidades" element={<OportunidadesPage />} />
         <Route path="/meus-casos" element={<MeusCasosAdvogadoPage />} />
         <Route path="/meus-clientes" element={<MeusClientesPage />} />
         <Route path="/perfil" element={<PerfilAdvogadoPage />} />

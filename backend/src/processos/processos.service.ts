@@ -44,6 +44,7 @@ export class ProcessosService {
       where: {
         advogadoId,
         softDelete: false,
+        status: { not: 'cancelada' }, // proposta cancelada libera a cota
         dataCriacao: { gte: inicioMes },
       },
     });
@@ -142,10 +143,18 @@ export class ProcessosService {
         include: {
           cliente: { select: { id: true, nome: true } },
           _count: { select: { propostas: { where: { softDelete: false } } } },
+          // proposta ATIVA (pendente) do próprio advogado neste caso — cancelada/recusada não conta,
+          // liberando o card para reenviar.
+          propostas: {
+            where: { advogadoId, softDelete: false, status: 'pendente' },
+            select: { id: true, mensagem: true, valorEstimado: true, status: true, justificativa: true },
+          },
         },
       }),
     ]);
-    return paginated(casos, total, { page: q.page, pageSize: q.pageSize });
+    // Achata `propostas` (0-1 item) em `minhaProposta`.
+    const dados = casos.map(({ propostas, ...c }) => ({ ...c, minhaProposta: propostas[0] ?? null }));
+    return paginated(dados, total, { page: q.page, pageSize: q.pageSize });
   }
 
   async findOne(id: number) {
@@ -186,10 +195,12 @@ export class ProcessosService {
     if (processo.status !== 'aberto')
       throw new BadRequestException('Processo não está mais aberto a propostas');
 
-    const jaExiste = await this.prisma.proposta.findFirst({
+    const existente = await this.prisma.proposta.findFirst({
       where: { processoId, advogadoId, softDelete: false },
     });
-    if (jaExiste) throw new ConflictException('Você já enviou uma proposta para este processo');
+    // Já tem proposta ativa (pendente/aceita) → bloqueia. Cancelada/recusada → reaproveita a linha.
+    if (existente && (existente.status === 'pendente' || existente.status === 'aceita'))
+      throw new ConflictException('Você já enviou uma proposta para este processo');
 
     const quota = await this.quotaMensal(advogadoId);
     if (quota.limite !== null && quota.usadas >= quota.limite) {
@@ -198,14 +209,19 @@ export class ProcessosService {
       );
     }
 
-    const proposta = await this.prisma.proposta.create({
-      data: {
-        processoId,
-        advogadoId,
-        mensagem: dto.mensagem,
-        valorEstimado: dto.valorEstimado,
-      },
-    });
+    const proposta = existente
+      ? await this.prisma.proposta.update({
+          where: { id: existente.id },
+          data: { mensagem: dto.mensagem, valorEstimado: dto.valorEstimado, status: 'pendente', justificativa: null, dataCriacao: new Date() },
+        })
+      : await this.prisma.proposta.create({
+          data: {
+            processoId,
+            advogadoId,
+            mensagem: dto.mensagem,
+            valorEstimado: dto.valorEstimado,
+          },
+        });
     await this.notificacoes.criar(
       processo.clienteId,
       'cliente',
@@ -289,7 +305,11 @@ export class ProcessosService {
   }
 
   /** Encerra um caso. Autorizado ao cliente dono OU ao advogado responsável (proposta aceita). */
-  async encerrarCaso(processoId: number, usuario: { id: number; tipo: 'cliente' | 'advogado' }) {
+  async encerrarCaso(
+    processoId: number,
+    usuario: { id: number; tipo: 'cliente' | 'advogado' },
+    justificativa?: string,
+  ) {
     const processo = await this.prisma.processo.findFirst({
       where: { id: processoId, softDelete: false },
       include: {
@@ -309,10 +329,67 @@ export class ProcessosService {
         throw new ForbiddenException('Você não é o advogado responsável por este caso');
     }
 
-    return this.prisma.processo.update({
+    const motivo = justificativa?.trim() || null;
+    const atualizado = await this.prisma.processo.update({
       where: { id: processoId },
-      data: { status: 'encerrado' },
+      data: { status: 'encerrado', ...(motivo && { motivoEncerramento: motivo }) },
     });
+    // Advogado encerrou → notifica o cliente com o motivo.
+    if (usuario.tipo === 'advogado') {
+      await this.notificacoes.criar(
+        processo.clienteId,
+        'cliente',
+        'caso_encerrado',
+        'Seu caso foi encerrado',
+        `O advogado encerrou o caso "${processo.titulo}".${motivo ? ` Motivo: ${motivo}` : ''}`,
+      );
+    }
+    return atualizado;
+  }
+
+  /** Advogado edita a própria proposta (enquanto pendente e com o caso aberto). */
+  async editarProposta(propostaId: number, advogadoId: number, dto: CriarPropostaDto) {
+    const proposta = await this.prisma.proposta.findFirst({
+      where: { id: propostaId, softDelete: false },
+      include: { processo: { select: { status: true } } },
+    });
+    if (!proposta) throw new NotFoundException('Proposta não encontrada');
+    if (proposta.advogadoId !== advogadoId)
+      throw new ForbiddenException('Você só pode editar as próprias propostas');
+    if (proposta.status !== 'pendente')
+      throw new BadRequestException('Só é possível editar propostas pendentes');
+    if (proposta.processo.status !== 'aberto')
+      throw new BadRequestException('O caso não está mais aberto a propostas');
+    return this.prisma.proposta.update({
+      where: { id: propostaId },
+      data: { mensagem: dto.mensagem, valorEstimado: dto.valorEstimado },
+    });
+  }
+
+  /** Advogado cancela a própria proposta (pendente), com justificativa exibida ao cliente. */
+  async cancelarProposta(propostaId: number, advogadoId: number, justificativa: string) {
+    const proposta = await this.prisma.proposta.findFirst({
+      where: { id: propostaId, softDelete: false },
+      include: { processo: { select: { clienteId: true, titulo: true } } },
+    });
+    if (!proposta) throw new NotFoundException('Proposta não encontrada');
+    if (proposta.advogadoId !== advogadoId)
+      throw new ForbiddenException('Você só pode cancelar as próprias propostas');
+    if (proposta.status !== 'pendente')
+      throw new BadRequestException('Só é possível cancelar propostas pendentes');
+
+    const cancelada = await this.prisma.proposta.update({
+      where: { id: propostaId },
+      data: { status: 'cancelada', justificativa: justificativa.trim() },
+    });
+    await this.notificacoes.criar(
+      proposta.processo.clienteId,
+      'cliente',
+      'proposta_cancelada',
+      'Uma proposta foi cancelada',
+      `Uma proposta no caso "${proposta.processo.titulo}" foi cancelada. Motivo: ${justificativa.trim()}`,
+    );
+    return cancelada;
   }
 
   /** Casos em que o advogado está envolvido (enviou proposta), com sua proposta e o histórico de relatórios. */

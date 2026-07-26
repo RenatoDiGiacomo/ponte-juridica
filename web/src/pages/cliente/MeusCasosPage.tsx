@@ -41,7 +41,8 @@ type Proposta = {
   id: number;
   mensagem: string;
   valorEstimado: string;
-  status: 'pendente' | 'aceita' | 'recusada';
+  status: 'pendente' | 'aceita' | 'recusada' | 'cancelada';
+  justificativa?: string | null;
   advogado: { id: number; nome: string; oab: string };
 };
 
@@ -55,6 +56,7 @@ type Processo = {
   estado?: string | null;
   cidade?: string | null;
   dataCriacao: string;
+  motivoEncerramento?: string | null;
   propostas: Proposta[];
   avaliacoes?: Avaliacao[];
 };
@@ -195,7 +197,9 @@ export function MeusCasosPage() {
         ? 'border-emerald-200 bg-emerald-50'
         : pr.status === 'recusada'
           ? 'border-red-100 bg-red-50/50 opacity-70'
-          : 'border-slate-100';
+          : pr.status === 'cancelada'
+            ? 'border-slate-200 bg-slate-50 opacity-70'
+            : 'border-slate-100';
     return (
       <div key={pr.id} className={`rounded-xl border p-4 ${cor}`}>
         <div className="mb-2 flex items-start justify-between gap-3">
@@ -227,6 +231,12 @@ export function MeusCasosPage() {
         )}
         {pr.status === 'aceita' && <p className="mt-2 text-sm font-bold text-emerald-700">✓ Proposta aceita</p>}
         {pr.status === 'recusada' && <p className="mt-2 text-sm font-semibold text-erro">✕ Recusada</p>}
+        {pr.status === 'cancelada' && (
+          <div className="mt-2">
+            <p className="text-sm font-semibold text-slate-500">✕ Proposta cancelada pelo advogado</p>
+            {pr.justificativa && <p className="mt-0.5 text-xs text-slate-500">Motivo: {pr.justificativa}</p>}
+          </div>
+        )}
       </div>
     );
   };
@@ -373,6 +383,13 @@ export function MeusCasosPage() {
                     Publicado em {new Date(selecionado.dataCriacao).toLocaleDateString('pt-BR')}
                     {selecionado.cidade && selecionado.estado ? ` · 📍 ${selecionado.cidade}/${selecionado.estado}` : ''}
                   </p>
+
+                  {selecionado.status === 'encerrado' && selecionado.motivoEncerramento && (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Motivo do encerramento</p>
+                      <p className="mt-1 text-sm text-slate-600">{selecionado.motivoEncerramento}</p>
+                    </div>
+                  )}
 
                   {/* Avaliação — só faz sentido quando o caso encerrado teve advogado responsável (proposta aceita) */}
                   {selecionado.status === 'encerrado' && (

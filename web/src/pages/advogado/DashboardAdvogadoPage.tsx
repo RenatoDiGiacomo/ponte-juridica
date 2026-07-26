@@ -4,8 +4,8 @@ import { Navbar } from '../../components/Navbar';
 import { Skeleton } from '../../components/Skeleton';
 
 const NAV = [
-  { label: 'Painel', to: '/painel' },
-  { label: 'Oportunidades', to: '/' },
+  { label: 'Painel', to: '/' },
+  { label: 'Oportunidades', to: '/oportunidades' },
   { label: 'Meus Casos', to: '/meus-casos' },
   { label: 'Meus Clientes', to: '/meus-clientes' },
   { label: 'Meu Perfil', to: '/perfil' },

@@ -123,6 +123,7 @@ model Processo {
   status         ProcessoStatus @default(aberto)
   estado         String?        @db.VarChar(2) // herdado do cliente ao publicar, ajustável (filtro de região)
   cidade         String?        @db.VarChar(100)
+  motivoEncerramento String?    @map("motivo_encerramento") @db.Text // justificativa do encerramento (exibida ao cliente)
   dataCriacao    DateTime       @default(now()) @map("data_criacao")
   softDelete     Boolean        @default(false) @map("soft_delete")
   cliente        Cliente        @relation(fields: [clienteId], references: [id])
@@ -156,6 +157,7 @@ model Proposta {
   mensagem      String         @db.Text
   valorEstimado Decimal        @map("valor_estimado") @db.Decimal(10, 2)
   status        PropostaStatus @default(pendente)
+  justificativa String?        @db.Text // motivo do cancelamento (exibido ao cliente)
   dataCriacao   DateTime       @default(now()) @map("data_criacao")
   softDelete    Boolean        @default(false) @map("soft_delete")
   processo      Processo       @relation(fields: [processoId], references: [id])
@@ -175,6 +177,7 @@ enum PropostaStatus {
   pendente
   aceita
   recusada
+  cancelada
 }
 
 // Avaliação do advogado pelo cliente, após um caso encerrado (1 por caso/cliente).

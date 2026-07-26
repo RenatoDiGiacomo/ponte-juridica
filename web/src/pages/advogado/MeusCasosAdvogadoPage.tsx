@@ -4,12 +4,13 @@ import { Navbar } from '../../components/Navbar';
 import { StatusBadge, type CasoStatus } from '../../components/StatusBadge';
 import { EmptyState } from '../../components/EmptyState';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { Modal } from '../../components/Modal';
 import { FilterChips } from '../../components/FilterChips';
 import { useToast } from '../../components/Toast';
 
 const NAV = [
-  { label: 'Painel', to: '/painel' },
-  { label: 'Oportunidades', to: '/' },
+  { label: 'Painel', to: '/' },
+  { label: 'Oportunidades', to: '/oportunidades' },
   { label: 'Meus Casos', to: '/meus-casos' },
   { label: 'Meus Clientes', to: '/meus-clientes' },
   { label: 'Meu Perfil', to: '/perfil' },
@@ -43,7 +44,7 @@ type Caso = {
 export function MeusCasosAdvogadoPage() {
   const [casos, setCasos] = useState<Caso[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState<CasoStatus | 'todos'>('todos');
+  const [filtro, setFiltro] = useState<CasoStatus | 'todos'>('aberto');
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
@@ -51,6 +52,8 @@ export function MeusCasosAdvogadoPage() {
   const [salvando, setSalvando] = useState(false);
   const [encerrarId, setEncerrarId] = useState<number | null>(null);
   const [encerrando, setEncerrando] = useState(false);
+  const [justificativaEnc, setJustificativaEnc] = useState('');
+  const [erroEnc, setErroEnc] = useState('');
   // edição/exclusão de relatório
   const [editandoRelId, setEditandoRelId] = useState<number | null>(null);
   const [editTexto, setEditTexto] = useState('');
@@ -144,11 +147,19 @@ export function MeusCasosAdvogadoPage() {
     }
   }
 
+  function abrirEncerrar(id: number) {
+    setEncerrarId(id);
+    setJustificativaEnc('');
+    setErroEnc('');
+  }
+
   async function confirmarEncerramento() {
     if (encerrarId === null) return;
+    if (justificativaEnc.trim().length < 5) return setErroEnc('Informe uma justificativa (mín. 5 caracteres)');
     setEncerrando(true);
+    setErroEnc('');
     try {
-      await processosService.encerrar(encerrarId);
+      await processosService.encerrar(encerrarId, justificativaEnc.trim());
       setEncerrarId(null);
       mostrar('Caso encerrado', 'sucesso');
       await carregar();
@@ -240,7 +251,7 @@ export function MeusCasosAdvogadoPage() {
                     <div className="flex shrink-0 flex-col items-end gap-2">
                       <StatusBadge status={sel.status} />
                       {souResponsavel && sel.status !== 'encerrado' && (
-                        <button type="button" onClick={() => setEncerrarId(sel.id)} className="text-xs font-semibold text-erro hover:underline">
+                        <button type="button" onClick={() => abrirEncerrar(sel.id)} className="text-xs font-semibold text-erro hover:underline">
                           Encerrar caso
                         </button>
                       )}
@@ -348,16 +359,28 @@ export function MeusCasosAdvogadoPage() {
         )}
       </div>
 
-      <ConfirmModal
-        aberto={encerrarId !== null}
-        titulo="Encerrar caso"
-        mensagem="Tem certeza que deseja encerrar este caso? Esta ação não pode ser desfeita."
-        textoConfirmar="Encerrar"
-        variante="reforcado"
-        carregando={encerrando}
-        onConfirmar={confirmarEncerramento}
-        onCancelar={() => setEncerrarId(null)}
-      />
+      <Modal aberto={encerrarId !== null} onFechar={() => setEncerrarId(null)} titulo="Encerrar caso" variante="reforcado">
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600">Informe uma justificativa — ela será exibida ao cliente. Esta ação não pode ser desfeita.</p>
+          <textarea
+            value={justificativaEnc}
+            onChange={(e) => setJustificativaEnc(e.target.value)}
+            placeholder="Ex.: acordo cumprido; nada mais a tratar."
+            rows={3}
+            maxLength={1000}
+            className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+          {erroEnc && <p role="alert" className="text-sm text-erro">⚠️ {erroEnc}</p>}
+          <div className="flex gap-2">
+            <button type="button" onClick={confirmarEncerramento} disabled={encerrando} className="flex-1 rounded-lg bg-erro py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60">
+              {encerrando ? 'Encerrando...' : 'Encerrar caso'}
+            </button>
+            <button type="button" onClick={() => setEncerrarId(null)} className="flex-1 rounded-lg border border-slate-200 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmModal
         aberto={relExcluirId !== null}
