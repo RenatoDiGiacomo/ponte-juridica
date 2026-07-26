@@ -23,12 +23,32 @@ export function MeusCasosAdvogadoScreen() {
   const [casos, setCasos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filtro, setFiltro] = useState('todos');
+  const [filtro, setFiltro] = useState('aberto');
   const [selId, setSelId] = useState<number | null>(null);
   const [texto, setTexto] = useState('');
   const [editId, setEditId] = useState<number | null>(null);
   const [editTexto, setEditTexto] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [mostrarEncerrar, setMostrarEncerrar] = useState(false);
+  const [justificativaEnc, setJustificativaEnc] = useState('');
+  const [encerrando, setEncerrando] = useState(false);
+
+  async function encerrarCaso() {
+    if (!sel) return;
+    if (justificativaEnc.trim().length < 5) return Alert.alert('Atenção', 'Informe uma justificativa (mín. 5 caracteres)');
+    setEncerrando(true);
+    try {
+      await processosService.encerrar(sel.id, justificativaEnc.trim());
+      setMostrarEncerrar(false);
+      setJustificativaEnc('');
+      await carregar();
+      Alert.alert('Pronto', 'Caso encerrado.');
+    } catch (e: any) {
+      Alert.alert('Erro', e.response?.data?.message ?? 'Falha ao encerrar');
+    } finally {
+      setEncerrando(false);
+    }
+  }
 
   const carregar = useCallback(async () => {
     try {
@@ -52,6 +72,8 @@ export function MeusCasosAdvogadoScreen() {
     setTexto('');
     setEditId(null);
     setEditTexto('');
+    setMostrarEncerrar(false);
+    setJustificativaEnc('');
   }
 
   async function adicionar() {
@@ -167,6 +189,43 @@ export function MeusCasosAdvogadoScreen() {
                     Minha proposta: R$ {Number(minhaProposta.valorEstimado).toFixed(2)} · {minhaProposta.status}
                   </Text>
                 ) : null}
+
+                {/* Encerrar caso (responsável, ainda não encerrado) */}
+                {souResponsavel && selAtual.status !== 'encerrado' && (
+                  <View className="mt-3 rounded-2xl border border-red-100 bg-red-50/50 p-3">
+                    {!mostrarEncerrar ? (
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-1 pr-2">
+                          <Text className="text-xs font-bold uppercase tracking-wider text-erro">Encerrar caso</Text>
+                          <Text className="text-[11px] text-slate-500">O cliente vê a justificativa.</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => setMostrarEncerrar(true)} className="rounded-lg border border-red-300 bg-white px-3 py-1.5">
+                          <Text className="text-xs font-bold text-erro">Encerrar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View>
+                        <Text className="mb-1 text-[11px] text-slate-500">Justificativa (será exibida ao cliente):</Text>
+                        <TextInput
+                          value={justificativaEnc}
+                          onChangeText={setJustificativaEnc}
+                          placeholder="Ex.: acordo cumprido; nada mais a tratar."
+                          multiline
+                          textAlignVertical="top"
+                          className="h-20 rounded-xl border border-red-200 bg-white p-3"
+                        />
+                        <View className="mt-2 flex-row gap-2">
+                          <TouchableOpacity onPress={encerrarCaso} disabled={encerrando} className="flex-1 items-center rounded-lg bg-erro py-2.5">
+                            {encerrando ? <ActivityIndicator color="#fff" /> : <Text className="font-bold text-white">Encerrar caso</Text>}
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => setMostrarEncerrar(false)} className="flex-1 items-center rounded-lg border border-gray-200 bg-white py-2.5">
+                            <Text className="font-medium text-gray-600">Voltar</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 <Text className="text-xs font-bold text-gray-400 uppercase tracking-wide mt-5 mb-2">
                   Relatórios de situação ({selAtual.relatorios?.length ?? 0})

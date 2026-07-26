@@ -1,19 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, Alert, RefreshControl,
+  ActivityIndicator, Alert, RefreshControl, TextInput,
 } from 'react-native';
 import { conexoesService } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { EmptyState } from '../../components/EmptyState';
 
 export function MinhasConexoesScreen() {
   const [conexoes, setConexoes] = useState<any[]>([]);
+  const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [removerId, setRemoverId] = useState<number | null>(null);
-  const { logout } = useAuth();
+
+  const filtradas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return q ? conexoes.filter((c) => (c.advogado?.nome ?? '').toLowerCase().includes(q)) : conexoes;
+  }, [conexoes, busca]);
 
   const carregar = useCallback(async () => {
     try {
@@ -43,16 +47,22 @@ export function MinhasConexoesScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Hero */}
-      <View className="flex-row items-center justify-between bg-primary px-5 pb-4 pt-3">
-        <Text className="text-blue-200 text-sm">
+      {/* Hero com busca */}
+      <View className="bg-primary px-5 pb-4 pt-3">
+        <Text className="mb-2 text-sm text-blue-200">
           {conexoes.length} {conexoes.length === 1 ? 'advogado' : 'advogados'}
         </Text>
-        <TouchableOpacity onPress={logout}><Text className="text-sm font-medium text-blue-100">Sair</Text></TouchableOpacity>
+        <TextInput
+          value={busca}
+          onChangeText={setBusca}
+          placeholder="🔍 Buscar por nome do advogado..."
+          placeholderTextColor="#93b0d0"
+          className="rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white"
+        />
       </View>
 
       <FlatList
-        data={conexoes}
+        data={filtradas}
         keyExtractor={(i) => String(i.id)}
         contentContainerClassName="px-4 py-4 pb-10"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregar(); }} />}
