@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { processosService } from '../../services/api';
+import { processosService, advogadosService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { Modal } from '../../components/Modal';
 import { MultiSelect } from '../../components/MultiSelect';
@@ -69,6 +69,17 @@ export function OportunidadesPage() {
     processosService.quota().then((r) => setQuota(r.data));
   }, []);
   useEffect(() => { carregarQuota(); }, [carregarQuota]);
+
+  // Pré-preenche o filtro "Minhas áreas" com as áreas de atuação do advogado.
+  useEffect(() => {
+    advogadosService.meuPerfil().then((r) => {
+      const minhas = (r.data?.areas ?? []) as string[];
+      if (minhas.length) {
+        setDraft((d) => ({ ...d, areas: minhas }));
+        setAplicados((a) => ({ ...a, areas: minhas }));
+      }
+    }).catch(() => {});
+  }, []);
 
   const fetcher = useCallback(
     ({ page, pageSize, signal }: { page: number; pageSize: number; signal: AbortSignal }) =>
