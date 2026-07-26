@@ -12,6 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { processosService } from '../../services/api';
 
+type MinhaProposta = { id: number; mensagem: string; valorEstimado: string; status: string; justificativa: string | null };
 type ProcessoAberto = {
   id: number;
   titulo: string;
@@ -20,6 +21,7 @@ type ProcessoAberto = {
   dataCriacao: string;
   cliente: { id: number; nome: string };
   _count: { propostas: number };
+  minhaProposta?: MinhaProposta | null;
 };
 
 const ESPECIALIZACOES = [
@@ -130,26 +132,30 @@ export function OportunidadesScreen({ navigation }: any) {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('EnviarProposta', { processo: item })}
-              className="bg-white rounded-2xl p-4 mb-3 shadow-sm"
-            >
-              <Text className="text-lg font-bold text-primary" numberOfLines={2}>
-                {item.titulo}
-              </Text>
-              <Text className="text-secondary font-medium text-sm">{item.especializacao}</Text>
-              <Text className="text-gray-600 text-sm mt-2" numberOfLines={3}>
-                {item.descricao}
-              </Text>
-              <View className="flex-row justify-between items-center mt-3 pt-2 border-t border-gray-100">
-                <Text className="text-xs text-gray-500">por {item.cliente.nome}</Text>
-                <Text className="text-xs text-gray-500">
-                  {item._count.propostas} proposta{item._count.propostas === 1 ? '' : 's'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const jaEnviei = !!item.minhaProposta;
+            return (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('EnviarProposta', { processo: item })}
+                className={`rounded-2xl p-4 mb-3 shadow-sm border ${jaEnviei ? 'border-emerald-200 bg-emerald-50' : 'border-transparent bg-white'}`}
+              >
+                <Text className="text-base font-bold text-slate-800" numberOfLines={2}>{item.titulo}</Text>
+                <Text className="text-sm font-medium text-secondary">{item.especializacao}</Text>
+                <Text className="mt-2 text-sm text-slate-600" numberOfLines={3}>{item.descricao}</Text>
+                {jaEnviei && (
+                  <Text className="mt-2 text-sm font-semibold text-emerald-700">
+                    ✓ Proposta enviada — R$ {Number(item.minhaProposta!.valorEstimado).toFixed(2)} · toque para editar
+                  </Text>
+                )}
+                <View className="mt-3 flex-row items-center justify-between border-t border-slate-100 pt-2">
+                  <Text className="text-xs text-slate-500">por {item.cliente.nome}</Text>
+                  <Text className="text-xs text-slate-500">
+                    {item._count.propostas} proposta{item._count.propostas === 1 ? '' : 's'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
     </View>

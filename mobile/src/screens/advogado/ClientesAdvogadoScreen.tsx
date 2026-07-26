@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, Modal, ScrollView, Alert, TextInput } from 'react-native';
 import { conexoesService } from '../../services/api';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -10,6 +10,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function ClientesAdvogadoScreen() {
   const [clientes, setClientes] = useState<any[]>([]);
+  const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [detalhe, setDetalhe] = useState<any>(null);
@@ -17,15 +18,18 @@ export function ClientesAdvogadoScreen() {
 
   const carregar = useCallback(async () => {
     try {
-      const { data } = await conexoesService.meusClientes({ page: 1, pageSize: 100 });
+      const { data } = await conexoesService.meusClientes({ ...(busca && { busca }), page: 1, pageSize: 100 });
       setClientes(data.data ?? data);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [busca]);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => {
+    const t = setTimeout(carregar, 350);
+    return () => clearTimeout(t);
+  }, [carregar]);
 
   async function abrirDetalhe(clienteId: number) {
     setDetalhe(null);
@@ -40,10 +44,22 @@ export function ClientesAdvogadoScreen() {
     }
   }
 
-  if (loading) return <ActivityIndicator className="mt-20" color="#1E3A5F" />;
-
   return (
     <View className="flex-1 bg-background">
+      {/* Hero com busca */}
+      <View className="bg-primary px-4 pb-4 pt-3">
+        <TextInput
+          value={busca}
+          onChangeText={setBusca}
+          placeholder="🔍 Buscar cliente por nome ou CPF/CNPJ..."
+          placeholderTextColor="#93b0d0"
+          className="rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white"
+        />
+      </View>
+
+      {loading ? (
+        <ActivityIndicator className="mt-16" size="large" color="#1a3a5c" />
+      ) : (
       <FlatList
         data={clientes}
         keyExtractor={(i) => String(i.id)}
@@ -71,6 +87,7 @@ export function ClientesAdvogadoScreen() {
           </TouchableOpacity>
         )}
       />
+      )}
 
       {/* Modal de detalhe do cliente */}
       <Modal visible={carregandoDetalhe || detalhe !== null} animationType="slide" transparent onRequestClose={() => setDetalhe(null)}>
