@@ -49,6 +49,14 @@ export function MeusProcessosScreen({ navigation }: any) {
   const [ordem, setOrdem] = useState<'' | 'asc' | 'desc'>('');
   const [confirmar, setConfirmar] = useState<Proposta | null>(null);
   const [aceitando, setAceitando] = useState(false);
+  const [expandidas, setExpandidas] = useState<Set<number>>(new Set()); // casos com o grupo de recusadas aberto
+
+  const toggleRecusadas = (casoId: number) =>
+    setExpandidas((prev) => {
+      const novo = new Set(prev);
+      novo.has(casoId) ? novo.delete(casoId) : novo.add(casoId);
+      return novo;
+    });
 
   async function carregar() {
     try {
@@ -94,6 +102,42 @@ export function MeusProcessosScreen({ navigation }: any) {
   }
 
   const cicloOrdem = () => setOrdem((o) => (o === '' ? 'asc' : o === 'asc' ? 'desc' : ''));
+
+  const cardProposta = (p: Proposta, casoStatus: CasoStatus) => {
+    const cor = p.status === 'aceita' ? 'border-emerald-200 bg-emerald-50'
+      : p.status === 'recusada' ? 'border-red-100 bg-red-50/60'
+      : p.status === 'cancelada' ? 'border-slate-200 bg-slate-50'
+      : 'border-slate-100 bg-slate-50';
+    return (
+      <View key={p.id} className={`mb-2 rounded-xl border p-3 ${cor}`}>
+        <View className="flex-row justify-between">
+          <Text className="font-bold text-slate-800">{p.advogado.nome}</Text>
+          <Text className="font-bold text-secondary">R$ {Number(p.valorEstimado).toFixed(2)}</Text>
+        </View>
+        <Text className="mb-1 text-xs text-slate-400">OAB {p.advogado.oab}</Text>
+        <Text className="text-sm text-slate-600">{p.mensagem}</Text>
+
+        {p.status === 'pendente' && casoStatus === 'aberto' && (
+          <View className="mt-2 flex-row gap-2">
+            <TouchableOpacity onPress={() => setConfirmar(p)} className="flex-1 items-center rounded-lg bg-primary py-2">
+              <Text className="font-bold text-white">✓ Aceitar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => recusarProposta(p)} className="flex-1 items-center rounded-lg border border-slate-200 bg-white py-2">
+              <Text className="font-medium text-slate-600">Recusar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {p.status === 'aceita' && <Text className="mt-2 text-sm font-bold text-emerald-700">✓ Proposta aceita</Text>}
+        {p.status === 'recusada' && <Text className="mt-2 text-sm font-semibold text-erro">✕ Recusada</Text>}
+        {p.status === 'cancelada' && (
+          <View className="mt-2">
+            <Text className="text-sm font-semibold text-slate-500">✕ Cancelada pelo advogado</Text>
+            {p.justificativa ? <Text className="mt-0.5 text-xs text-slate-500">Motivo: {p.justificativa}</Text> : null}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View className="flex-1 bg-background">
@@ -150,48 +194,31 @@ export function MeusProcessosScreen({ navigation }: any) {
               </View>
               <Text className="text-sm text-slate-600" numberOfLines={3}>{item.descricao}</Text>
 
-              {item.propostas.length > 0 && (
-                <View className="mt-3 border-t border-slate-100 pt-3">
-                  <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Propostas recebidas ({item.propostas.length})
-                  </Text>
-                  {ordenarPropostas(item.propostas).map((p) => {
-                    const cor = p.status === 'aceita' ? 'border-emerald-200 bg-emerald-50'
-                      : p.status === 'recusada' ? 'border-red-100 bg-red-50/60'
-                      : p.status === 'cancelada' ? 'border-slate-200 bg-slate-50'
-                      : 'border-slate-100 bg-slate-50';
-                    return (
-                      <View key={p.id} className={`mb-2 rounded-xl border p-3 ${cor}`}>
-                        <View className="flex-row justify-between">
-                          <Text className="font-bold text-slate-800">{p.advogado.nome}</Text>
-                          <Text className="font-bold text-secondary">R$ {Number(p.valorEstimado).toFixed(2)}</Text>
-                        </View>
-                        <Text className="mb-1 text-xs text-slate-400">OAB {p.advogado.oab}</Text>
-                        <Text className="text-sm text-slate-600">{p.mensagem}</Text>
-
-                        {p.status === 'pendente' && item.status === 'aberto' && (
-                          <View className="mt-2 flex-row gap-2">
-                            <TouchableOpacity onPress={() => setConfirmar(p)} className="flex-1 items-center rounded-lg bg-primary py-2">
-                              <Text className="font-bold text-white">✓ Aceitar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => recusarProposta(p)} className="flex-1 items-center rounded-lg border border-slate-200 bg-white py-2">
-                              <Text className="font-medium text-slate-600">Recusar</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                        {p.status === 'aceita' && <Text className="mt-2 text-sm font-bold text-emerald-700">✓ Proposta aceita</Text>}
-                        {p.status === 'recusada' && <Text className="mt-2 text-sm font-semibold text-erro">✕ Recusada</Text>}
-                        {p.status === 'cancelada' && (
-                          <View className="mt-2">
-                            <Text className="text-sm font-semibold text-slate-500">✕ Cancelada pelo advogado</Text>
-                            {p.justificativa ? <Text className="mt-0.5 text-xs text-slate-500">Motivo: {p.justificativa}</Text> : null}
-                          </View>
-                        )}
+              {item.propostas.length > 0 && (() => {
+                const ativas = ordenarPropostas(item.propostas.filter((p) => p.status === 'aceita' || p.status === 'pendente'));
+                const recusadas = item.propostas.filter((p) => p.status === 'recusada' || p.status === 'cancelada');
+                const aberto = expandidas.has(item.id);
+                return (
+                  <View className="mt-3 border-t border-slate-100 pt-3">
+                    <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Propostas recebidas ({item.propostas.length})
+                    </Text>
+                    {ativas.map((p) => cardProposta(p, item.status))}
+                    {ativas.length === 0 && recusadas.length > 0 && (
+                      <Text className="mb-2 text-sm text-slate-400">Nenhuma proposta ativa.</Text>
+                    )}
+                    {recusadas.length > 0 && (
+                      <View>
+                        <TouchableOpacity onPress={() => toggleRecusadas(item.id)} className="flex-row items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
+                          <Text className="text-sm font-semibold text-slate-600">Recusadas / canceladas ({recusadas.length})</Text>
+                          <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={16} color="#64748b" />
+                        </TouchableOpacity>
+                        {aberto && <View className="mt-2">{recusadas.map((p) => cardProposta(p, item.status))}</View>}
                       </View>
-                    );
-                  })}
-                </View>
-              )}
+                    )}
+                  </View>
+                );
+              })()}
             </View>
           )}
         />
