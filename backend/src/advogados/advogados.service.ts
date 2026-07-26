@@ -138,32 +138,59 @@ export class AdvogadosService {
     return this.findPerfil(advogadoId);
   }
 
-  /** KPIs do advogado para o dashboard. */
-  async dashboard(advogadoId: number) {
-    const responsavelEm = (status: 'em_atendimento' | 'encerrado') => ({
-      status,
-      softDelete: false,
-      propostas: { some: { advogadoId, status: 'aceita' as const, softDelete: false } },
-    });
-    const [enviadas, aceitas, ativos, encerrados, clientes, aval, faturamento] = await Promise.all([
-      this.prisma.proposta.count({ where: { advogadoId, softDelete: false } }),
-      this.prisma.proposta.count({ where: { advogadoId, status: 'aceita', softDelete: false } }),
-      this.prisma.processo.count({ where: responsavelEm('em_atendimento') }),
-      this.prisma.processo.count({ where: responsavelEm('encerrado') }),
-      this.prisma.clienteAdvogado.count({ where: { advogadoId, softDelete: false } }),
-      this.prisma.avaliacao.aggregate({ where: { advogadoId, softDelete: false }, _avg: { nota: true }, _count: true }),
-      this.prisma.proposta.aggregate({ where: { advogadoId, status: 'aceita', softDelete: false }, _sum: { valorEstimado: true } }),
-    ]);
+  /**
+   * KPIs do advogado para o dashboard, com recorte por período (ano; mês opcional)
+   * e série mensal do ano para o gráfico. "No período" = por dataCriacao da proposta;
+   * "situação atual" = totais correntes (não dependem do período).
+   */
+  async dashboard(advogadoId: number, ano?: number, mes?: number) {
+    const anoAtual = ano ?? new Date().getFullYear();
+    const inicioPeriodo = new Date(anoAtual, mes ? mes - 1 : 0, 1);
+    const fimPeriodo = mes ? new Date(anoAtual, mes, 1) : new Date(anoAtual + 1, 0, 1);
+    const periodo = { gte: inicioPeriodo, lt: fimPeriodo };
+    const inicioAno = new Date(anoAtual, 0, 1);
+    const fimAno = new Date(anoAtual + 1, 0, 1);
+
+    const [enviadas, aceitas, faturamento, novosClientes, propostasAno, ativos, clientes, aval] =
+      await Promise.all([
+        this.prisma.proposta.count({ where: { advogadoId, softDelete: false, dataCriacao: periodo } }),
+        this.prisma.proposta.count({ where: { advogadoId, status: 'aceita', softDelete: false, dataCriacao: periodo } }),
+        this.prisma.proposta.aggregate({ where: { advogadoId, status: 'aceita', softDelete: false, dataCriacao: periodo }, _sum: { valorEstimado: true } }),
+        this.prisma.clienteAdvogado.count({ where: { advogadoId, softDelete: false, dataVinculo: periodo } }),
+        this.prisma.proposta.findMany({
+          where: { advogadoId, softDelete: false, dataCriacao: { gte: inicioAno, lt: fimAno } },
+          select: { status: true, dataCriacao: true },
+        }),
+        this.prisma.processo.count({ where: { status: 'em_atendimento', softDelete: false, propostas: { some: { advogadoId, status: 'aceita', softDelete: false } } } }),
+        this.prisma.clienteAdvogado.count({ where: { advogadoId, softDelete: false } }),
+        this.prisma.avaliacao.aggregate({ where: { advogadoId, softDelete: false }, _avg: { nota: true }, _count: true }),
+      ]);
+
+    // Série mensal (12 meses) do ano selecionado.
+    const serie = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, enviadas: 0, aceitas: 0 }));
+    for (const p of propostasAno) {
+      const idx = p.dataCriacao.getMonth();
+      serie[idx].enviadas++;
+      if (p.status === 'aceita') serie[idx].aceitas++;
+    }
+
     return {
-      propostasEnviadas: enviadas,
-      propostasAceitas: aceitas,
-      taxaAceite: enviadas ? Math.round((aceitas / enviadas) * 100) : 0,
-      casosAtivos: ativos,
-      casosEncerrados: encerrados,
-      clientesVinculados: clientes,
-      notaMedia: aval._avg.nota != null ? Math.round(aval._avg.nota * 10) / 10 : null,
-      totalAvaliacoes: aval._count,
-      faturamentoEstimado: Number(faturamento._sum.valorEstimado ?? 0),
+      ano: anoAtual,
+      mes: mes ?? 0,
+      periodo: {
+        propostasEnviadas: enviadas,
+        propostasAceitas: aceitas,
+        taxaAceite: enviadas ? Math.round((aceitas / enviadas) * 100) : 0,
+        faturamentoEstimado: Number(faturamento._sum.valorEstimado ?? 0),
+        novosClientes,
+      },
+      atual: {
+        casosAtivos: ativos,
+        clientesVinculados: clientes,
+        notaMedia: aval._avg.nota != null ? Math.round(aval._avg.nota * 10) / 10 : null,
+        totalAvaliacoes: aval._count,
+      },
+      serie,
     };
   }
 }

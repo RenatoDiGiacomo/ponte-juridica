@@ -78,9 +78,19 @@ export class AdvogadosController {
   @Get('dashboard')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Métricas (KPIs) do advogado logado' })
-  dashboard(@UsuarioAtual() u: { id: number }) {
-    return this.advogados.dashboard(u.id);
+  @ApiOperation({ summary: 'Métricas (KPIs) do advogado logado — por período (ano; mês opcional)' })
+  dashboard(
+    @UsuarioAtual() u: { id: number },
+    @Query('ano') ano?: string,
+    @Query('mes') mes?: string,
+  ) {
+    const anoNum = ano ? Number(ano) : undefined;
+    const mesNum = mes ? Number(mes) : undefined;
+    return this.advogados.dashboard(
+      u.id,
+      Number.isFinite(anoNum) ? anoNum : undefined,
+      mesNum && mesNum >= 1 && mesNum <= 12 ? mesNum : undefined,
+    );
   }
 
   @Get(':id')

@@ -46,11 +46,12 @@ export const advogadosService = {
   adicionarArea: (areaId: number) => api.post('/advogados/perfil/areas', { areaId }),
   removerArea: (areaId: number) => api.delete(`/advogados/perfil/areas/${areaId}`),
   trocarPlano: (planoId: number) => api.patch('/advogados/perfil/plano', { planoId }),
-  dashboard: () => api.get<{
-    propostasEnviadas: number; propostasAceitas: number; taxaAceite: number;
-    casosAtivos: number; casosEncerrados: number; clientesVinculados: number;
-    notaMedia: number | null; totalAvaliacoes: number; faturamentoEstimado: number;
-  }>('/advogados/dashboard'),
+  dashboard: (ano?: number, mes?: number) => api.get<{
+    ano: number; mes: number;
+    periodo: { propostasEnviadas: number; propostasAceitas: number; taxaAceite: number; faturamentoEstimado: number; novosClientes: number };
+    atual: { casosAtivos: number; clientesVinculados: number; notaMedia: number | null; totalAvaliacoes: number };
+    serie: { mes: number; enviadas: number; aceitas: number }[];
+  }>('/advogados/dashboard', { params: { ...(ano && { ano }), ...(mes && { mes }) } }),
 };
 
 export const areasService = {
