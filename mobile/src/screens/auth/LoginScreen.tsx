@@ -10,11 +10,11 @@ type DemoUser = {
 };
 
 const DEMO_USERS: DemoUser[] = [
-  { label: 'João Silva', tipo: 'cliente', email: 'cliente.demo@pontejuridica.com', hint: 'Cliente · tem caso em atendimento + propostas pendentes' },
-  { label: 'Mariana Souza', tipo: 'cliente', email: 'mariana@pontejuridica.com', hint: 'Cliente · caso de Família' },
+  { label: 'João Silva', tipo: 'cliente', email: 'cliente.demo@pontejuridica.com', hint: 'Cliente · casos em atendimento + propostas e contatos' },
+  { label: 'Mariana Souza', tipo: 'cliente', email: 'mariana.demo@pontejuridica.com', hint: 'Cliente · casos de Família e Cível' },
   { label: 'Dra. Maria Ferreira', tipo: 'advogado', email: 'maria.demo@pontejuridica.com', hint: 'Trabalhista · plano Profissional (20/mês)' },
-  { label: 'Dra. Juliana Costa', tipo: 'advogado', email: 'juliana@pontejuridica.com', hint: 'Cível · plano Básico (5/mês)' },
-  { label: 'Dr. Carlos Mendes', tipo: 'advogado', email: 'carlos@pontejuridica.com', hint: 'Criminal · plano Elite (ilimitado)' },
+  { label: 'Dra. Juliana Costa', tipo: 'advogado', email: 'juliana.demo@pontejuridica.com', hint: 'Cível · plano Básico (5/mês)' },
+  { label: 'Dr. Carlos Mendes', tipo: 'advogado', email: 'carlos.demo@pontejuridica.com', hint: 'Criminal · plano Elite (ilimitado)' },
 ];
 
 const SENHA_DEMO = 'senha123';
