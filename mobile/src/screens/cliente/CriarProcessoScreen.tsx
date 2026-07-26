@@ -85,8 +85,8 @@ export function CriarProcessoScreen({ navigation }: any) {
           })}
         </View>
 
-        <TouchableOpacity onPress={salvar} disabled={salvando} className="items-center rounded-xl bg-secondary py-4">
-          {salvando ? <ActivityIndicator color="#1a3a5c" /> : <Text className="text-base font-bold text-primary">Publicar caso</Text>}
+        <TouchableOpacity onPress={salvar} disabled={salvando} className="items-center rounded-xl bg-primary py-4">
+          {salvando ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-bold text-white">Publicar caso</Text>}
         </TouchableOpacity>
       </View>
     </ScrollView>
