@@ -102,20 +102,24 @@ export function MeusCasosAdvogadoScreen() {
   // recupera o caso selecionado atualizado após recarregar
   const selAtual = casos.find((c) => c.id === selId) ?? sel;
 
-  if (loading) return <ActivityIndicator className="mt-20" color="#1E3A5F" />;
+  if (loading) return <ActivityIndicator className="mt-20" color="#1a3a5c" />;
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row flex-wrap gap-2 px-4 py-3">
-        {FILTROS.map((f) => (
-          <TouchableOpacity
-            key={f.v}
-            onPress={() => setFiltro(f.v)}
-            className={`px-3 py-2 rounded-full border ${filtro === f.v ? 'bg-primary border-primary' : 'bg-white border-gray-300'}`}
-          >
-            <Text className={filtro === f.v ? 'text-white font-medium' : 'text-gray-600'}>{f.label}</Text>
-          </TouchableOpacity>
-        ))}
+      {/* Hero com filtros de status */}
+      <View className="bg-primary px-4 pb-4 pt-3">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className="flex-row gap-2 pr-2">
+            {FILTROS.map((f) => {
+              const ativo = filtro === f.v;
+              return (
+                <TouchableOpacity key={f.v} onPress={() => setFiltro(f.v)} className={`rounded-full px-3 py-1.5 ${ativo ? 'bg-white' : 'bg-white/10 border border-white/20'}`}>
+                  <Text className={`text-xs font-semibold ${ativo ? 'text-primary' : 'text-blue-100'}`}>{f.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
       </View>
 
       <FlatList
