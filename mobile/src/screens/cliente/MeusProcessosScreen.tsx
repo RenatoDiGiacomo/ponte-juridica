@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { processosService } from '../../services/api';
 import { StatusBadge, type CasoStatus } from '../../components/StatusBadge';
@@ -35,6 +36,10 @@ function menorValor(p: Processo): number {
   if (!p.propostas.length) return Number.POSITIVE_INFINITY;
   return Math.min(...p.propostas.map((pr) => Number(pr.valorEstimado)));
 }
+
+// Ordem de exibição das propostas: aceita no topo, recusadas/canceladas por último.
+const PRIO_PROPOSTA: Record<Proposta['status'], number> = { aceita: 0, pendente: 1, recusada: 2, cancelada: 3 };
+const ordenarPropostas = (props: Proposta[]) => [...props].sort((a, b) => PRIO_PROPOSTA[a.status] - PRIO_PROPOSTA[b.status]);
 
 export function MeusProcessosScreen({ navigation }: any) {
   const [processos, setProcessos] = useState<Processo[]>([]);
@@ -150,7 +155,7 @@ export function MeusProcessosScreen({ navigation }: any) {
                   <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
                     Propostas recebidas ({item.propostas.length})
                   </Text>
-                  {item.propostas.map((p) => {
+                  {ordenarPropostas(item.propostas).map((p) => {
                     const cor = p.status === 'aceita' ? 'border-emerald-200 bg-emerald-50'
                       : p.status === 'recusada' ? 'border-red-100 bg-red-50/60'
                       : p.status === 'cancelada' ? 'border-slate-200 bg-slate-50'
@@ -198,7 +203,7 @@ export function MeusProcessosScreen({ navigation }: any) {
         className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg"
         accessibilityLabel="Publicar novo caso"
       >
-        <Text className="text-3xl font-light text-white" style={{ marginTop: -2 }}>+</Text>
+        <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
 
       <ConfirmModal

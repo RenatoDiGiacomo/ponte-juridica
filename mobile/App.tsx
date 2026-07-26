@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View, Text, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 
@@ -107,8 +108,9 @@ function OportunidadesStack() {
   );
 }
 
-const tabIcon = (emoji: string) => ({ color }: { color: string }) => (
-  <Text style={{ fontSize: 22, color, lineHeight: 30, textAlign: 'center' }}>{emoji}</Text>
+// Ícone vetorial (Ionicons): contorno quando inativo, preenchido quando ativo.
+const tabIcon = (nome: string) => ({ color, focused }: { color: string; focused: boolean }) => (
+  <Ionicons name={(focused ? nome : `${nome}-outline`) as never} size={24} color={color} />
 );
 
 const headerTituloComLogo = (titulo: string) => () => (
@@ -141,7 +143,7 @@ function ClienteTabs() {
         options={{
           title: 'Meus Casos',
           tabBarLabel: 'Casos',
-          tabBarIcon: tabIcon('📂'),
+          tabBarIcon: tabIcon('folder'),
           tabBarBadge: pendentes > 0 ? pendentes : undefined,
         }}
       />
@@ -151,7 +153,7 @@ function ClienteTabs() {
         options={{
           title: 'Buscar Advogados',
           tabBarLabel: 'Buscar',
-          tabBarIcon: tabIcon('🔍'),
+          tabBarIcon: tabIcon('search'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Buscar Advogados'),
         }}
@@ -162,7 +164,7 @@ function ClienteTabs() {
         options={{
           title: 'Meus Contatos',
           tabBarLabel: 'Meus Contatos',
-          tabBarIcon: tabIcon('🤝'),
+          tabBarIcon: tabIcon('people'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meus Contatos'),
         }}
@@ -173,7 +175,7 @@ function ClienteTabs() {
         options={{
           title: 'Minha Conta',
           tabBarLabel: 'Conta',
-          tabBarIcon: tabIcon('👤'),
+          tabBarIcon: tabIcon('person-circle'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Minha Conta'),
         }}
@@ -189,7 +191,7 @@ function AdvogadoTabs() {
       <Tab.Screen
         name="Oportunidades"
         component={OportunidadesStack}
-        options={{ tabBarLabel: 'Oportunidades', tabBarIcon: tabIcon('💼') }}
+        options={{ tabBarLabel: 'Oportunidades', tabBarIcon: tabIcon('briefcase') }}
       />
       <Tab.Screen
         name="MeusCasosAdv"
@@ -197,7 +199,7 @@ function AdvogadoTabs() {
         options={{
           title: 'Meus Casos',
           tabBarLabel: 'Casos',
-          tabBarIcon: tabIcon('📁'),
+          tabBarIcon: tabIcon('folder-open'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meus Casos'),
         }}
@@ -208,7 +210,7 @@ function AdvogadoTabs() {
         options={{
           title: 'Meus Clientes',
           tabBarLabel: 'Clientes',
-          tabBarIcon: tabIcon('👥'),
+          tabBarIcon: tabIcon('people'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meus Clientes'),
         }}
@@ -219,7 +221,7 @@ function AdvogadoTabs() {
         options={{
           title: 'Meu Perfil',
           tabBarLabel: 'Perfil',
-          tabBarIcon: tabIcon('👤'),
+          tabBarIcon: tabIcon('person-circle'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meu Perfil'),
         }}
