@@ -124,6 +124,20 @@ function dadosEscritorio(sobrenome: string, area: string) {
   };
 }
 
+const MOTIVOS_ENCERRAMENTO = [
+  'Acordo cumprido; nada mais a tratar.',
+  'Sentença transitada em julgado e valores levantados.',
+  'Objeto do caso resolvido extrajudicialmente.',
+  'Cliente optou por encerrar a demanda.',
+  'Processo arquivado após cumprimento integral.',
+];
+const JUSTIFICATIVAS_CANCELAMENTO = [
+  'Agenda lotada no período; não conseguirei atender com a dedicação necessária.',
+  'Identifiquei conflito de interesses neste caso.',
+  'A causa foge da minha área de especialização principal.',
+  'Não será possível assumir o caso no prazo esperado pelo cliente.',
+];
+
 const COMENTARIOS_AVALIACAO = [
   'Excelente atendimento, resolveu meu caso com agilidade.',
   'Profissional muito atencioso e competente. Recomendo!',
@@ -360,6 +374,15 @@ async function main() {
       nProp++;
     }
 
+    // Alguns casos abertos têm 1 proposta cancelada pelo advogado (demonstra o recurso).
+    if (alvo === 'aberto' && propostasCriadas.length >= 2 && chance(0.18)) {
+      const cancel = propostasCriadas.pop()!;
+      await prisma.proposta.update({
+        where: { id: cancel.id },
+        data: { status: 'cancelada', justificativa: pick(JUSTIFICATIVAS_CANCELAMENTO) },
+      });
+    }
+
     if (alvo !== 'aberto' && propostasCriadas.length) {
       const aceita = pick(propostasCriadas);
       await prisma.proposta.update({ where: { id: aceita.id }, data: { status: 'aceita' } });
@@ -367,7 +390,10 @@ async function main() {
         where: { processoId: processo.id, id: { not: aceita.id } },
         data: { status: 'recusada' },
       });
-      await prisma.processo.update({ where: { id: processo.id }, data: { status: alvo } });
+      await prisma.processo.update({
+        where: { id: processo.id },
+        data: { status: alvo, ...(alvo === 'encerrado' && { motivoEncerramento: pick(MOTIVOS_ENCERRAMENTO) }) },
+      });
 
       // Vínculo cliente ↔ advogado responsável
       if (await garantirVinculo(cli.id, aceita.advogadoId, new Date(dataCriacao.getTime() + 3 * 86_400_000))) nVinc++;
@@ -410,6 +436,7 @@ async function main() {
     statusAlvo: 'aberto' | 'em_atendimento' | 'encerrado',
     aceitarAdvId: number | null,
     outros: number[],
+    cancelarUma = false,
   ) {
     const tpl = pick(CASOS_POR_AREA[area]);
     const dataCriacao = diasAtras(randInt(10, 150));
@@ -431,11 +458,21 @@ async function main() {
       props.push({ id: p.id, advogadoId: advId });
       nProp++;
     }
+    // Cancela a última proposta (não a do advogado que será aceito), demonstrando o recurso.
+    if (statusAlvo === 'aberto' && cancelarUma && props.length >= 2) {
+      await prisma.proposta.update({
+        where: { id: props[props.length - 1].id },
+        data: { status: 'cancelada', justificativa: pick(JUSTIFICATIVAS_CANCELAMENTO) },
+      });
+    }
     if (statusAlvo !== 'aberto' && aceitarAdvId) {
       const aceita = props.find((p) => p.advogadoId === aceitarAdvId)!;
       await prisma.proposta.update({ where: { id: aceita.id }, data: { status: 'aceita' } });
       await prisma.proposta.updateMany({ where: { processoId: processo.id, id: { not: aceita.id } }, data: { status: 'recusada' } });
-      await prisma.processo.update({ where: { id: processo.id }, data: { status: statusAlvo } });
+      await prisma.processo.update({
+        where: { id: processo.id },
+        data: { status: statusAlvo, ...(statusAlvo === 'encerrado' && { motivoEncerramento: pick(MOTIVOS_ENCERRAMENTO) }) },
+      });
       if (await garantirVinculo(clienteId, aceitarAdvId, new Date(dataCriacao.getTime() + 3 * 86_400_000))) nVinc++;
       const qtd = statusAlvo === 'encerrado' ? randInt(3, 5) : randInt(2, 3);
       for (let k = 0; k < qtd; k++) {
@@ -451,7 +488,7 @@ async function main() {
   const cidJoao = joao!.enderecoCidade ?? 'São Paulo';
   // Casos do João (cliente demo): Meus Casos com propostas, aceites e 2 contatos distintos.
   await casoShowcase(joaoId, ufJoao, cidJoao, 'Trabalhista', 'em_atendimento', mariaId, pickN(outrosTrab, 2));
-  await casoShowcase(joaoId, ufJoao, cidJoao, 'Trabalhista', 'aberto', null, [mariaId, ...pickN(outrosTrab, 2)]);
+  await casoShowcase(joaoId, ufJoao, cidJoao, 'Trabalhista', 'aberto', null, [mariaId, ...pickN(outrosTrab, 2)], true);
   await casoShowcase(joaoId, ufJoao, cidJoao, 'Previdenciário', 'encerrado', mariaId, pickN(outrosPrev, 1));
   await casoShowcase(joaoId, ufJoao, cidJoao, 'Previdenciário', 'aberto', null, [mariaId, ...pickN(outrosPrev, 1)]);
   await casoShowcase(joaoId, ufJoao, cidJoao, 'Família', 'em_atendimento', advFamilia[0] ?? null, pickN(advFamilia.slice(1), 1)); // 2º contato
