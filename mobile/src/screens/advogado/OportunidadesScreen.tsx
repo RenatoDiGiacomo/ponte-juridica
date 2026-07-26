@@ -80,6 +80,22 @@ export function OportunidadesScreen({ navigation }: any) {
 
   return (
     <View className="flex-1 bg-background">
+      {/* Hero com filtros de área */}
+      <View className="bg-primary px-4 pb-4 pt-3">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className="flex-row gap-2 pr-2">
+            {ESPECIALIZACOES.map((item) => {
+              const ativo = filtro === item;
+              return (
+                <TouchableOpacity key={item} onPress={() => setFiltro(item)} className={`rounded-full px-3 py-1.5 ${ativo ? 'bg-white' : 'bg-white/10 border border-white/20'}`}>
+                  <Text className={`text-xs font-semibold ${ativo ? 'text-primary' : 'text-blue-100'}`}>{item}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
+
       {quota && (
         <View className={`mx-4 mt-3 p-3 rounded-xl border ${quotaCor}`}>
           <Text className="text-xs text-gray-500 font-medium">Plano {quota.plano}</Text>
@@ -90,25 +106,9 @@ export function OportunidadesScreen({ navigation }: any) {
           </Text>
         </View>
       )}
-      <View className="flex-row flex-wrap gap-2 px-4 py-3">
-        {ESPECIALIZACOES.map((item) => (
-          <TouchableOpacity
-            key={item}
-            onPress={() => setFiltro(item)}
-            style={{ flexGrow: 0, flexShrink: 0 }}
-            className={`px-4 py-2 rounded-full border ${
-              filtro === item ? 'bg-primary border-primary' : 'bg-white border-gray-300'
-            }`}
-          >
-            <Text className={filtro === item ? 'text-white font-medium' : 'text-gray-600'}>
-              {item}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
 
       {loading ? (
-        <ActivityIndicator className="mt-10" color="#1E3A5F" />
+        <ActivityIndicator className="mt-10" color="#1a3a5c" />
       ) : (
         <FlatList
           data={processos}

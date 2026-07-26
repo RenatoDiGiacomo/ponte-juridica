@@ -1,12 +1,13 @@
 import './global.css';
-import React from 'react';
+import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View, Text, Image } from 'react-native';
+import { ActivityIndicator, View, Text, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ConfirmModal } from './src/components/ConfirmModal';
 
 // Auth screens
 import { LoginScreen } from './src/screens/auth/LoginScreen';
@@ -72,7 +73,7 @@ function MeusCasosStack() {
       <Stack.Screen
         name="MeusProcessos"
         component={MeusProcessosScreen}
-        options={{ title: 'Meus Casos', headerTitle: headerTituloComLogo('Meus Casos') }}
+        options={{ title: 'Meus Casos', headerTitle: headerTituloComLogo('Meus Casos'), headerRight: headerSair }}
       />
       <Stack.Screen
         name="CriarProcesso"
@@ -93,7 +94,7 @@ function OportunidadesStack() {
       <Stack.Screen
         name="ListaOportunidades"
         component={OportunidadesScreen}
-        options={{ title: 'Oportunidades', headerTitle: headerTituloComLogo('Oportunidades') }}
+        options={{ title: 'Oportunidades', headerShown: true, headerTitle: headerTituloComLogo('Oportunidades'), headerRight: headerSair }}
       />
       <Stack.Screen
         name="EnviarProposta"
@@ -112,6 +113,30 @@ function OportunidadesStack() {
 const tabIcon = (nome: string) => ({ color, focused }: { color: string; focused: boolean }) => (
   <Ionicons name={(focused ? nome : `${nome}-outline`) as never} size={24} color={color} />
 );
+
+// Botão "Sair" no cabeçalho (acesso fácil em todas as telas), com confirmação in-app.
+function BotaoSair() {
+  const { logout } = useAuth();
+  const [aberto, setAberto] = useState(false);
+  return (
+    <View style={{ marginRight: 12 }}>
+      <TouchableOpacity onPress={() => setAberto(true)} className="flex-row items-center gap-1" accessibilityLabel="Sair da conta">
+        <Ionicons name="log-out-outline" size={20} color="#dc2626" />
+        <Text className="text-sm font-semibold text-erro">Sair</Text>
+      </TouchableOpacity>
+      <ConfirmModal
+        aberto={aberto}
+        titulo="Sair da conta"
+        mensagem="Deseja encerrar a sessão?"
+        textoConfirmar="Sair"
+        destrutivo
+        onConfirmar={() => { setAberto(false); logout(); }}
+        onCancelar={() => setAberto(false)}
+      />
+    </View>
+  );
+}
+const headerSair = () => <BotaoSair />;
 
 const headerTituloComLogo = (titulo: string) => () => (
   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -156,6 +181,7 @@ function ClienteTabs() {
           tabBarIcon: tabIcon('search'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Buscar Advogados'),
+          headerRight: headerSair,
         }}
       />
       <Tab.Screen
@@ -167,6 +193,7 @@ function ClienteTabs() {
           tabBarIcon: tabIcon('people'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meus Contatos'),
+          headerRight: headerSair,
         }}
       />
       <Tab.Screen
@@ -178,6 +205,7 @@ function ClienteTabs() {
           tabBarIcon: tabIcon('person-circle'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Minha Conta'),
+          headerRight: headerSair,
         }}
       />
     </Tab.Navigator>
@@ -202,6 +230,7 @@ function AdvogadoTabs() {
           tabBarIcon: tabIcon('folder-open'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meus Casos'),
+          headerRight: headerSair,
         }}
       />
       <Tab.Screen
@@ -213,6 +242,7 @@ function AdvogadoTabs() {
           tabBarIcon: tabIcon('people'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meus Clientes'),
+          headerRight: headerSair,
         }}
       />
       <Tab.Screen
@@ -224,6 +254,7 @@ function AdvogadoTabs() {
           tabBarIcon: tabIcon('person-circle'),
           headerShown: true,
           headerTitle: headerTituloComLogo('Meu Perfil'),
+          headerRight: headerSair,
         }}
       />
     </Tab.Navigator>
