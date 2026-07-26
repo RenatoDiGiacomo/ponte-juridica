@@ -28,6 +28,7 @@ import { ClientesAdvogadoScreen } from './src/screens/advogado/ClientesAdvogadoS
 import { OportunidadesScreen } from './src/screens/advogado/OportunidadesScreen';
 import { EnviarPropostaScreen } from './src/screens/advogado/EnviarPropostaScreen';
 import { MeusCasosAdvogadoScreen } from './src/screens/advogado/MeusCasosAdvogadoScreen';
+import { DashboardAdvogadoScreen } from './src/screens/advogado/DashboardAdvogadoScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -216,6 +217,18 @@ function AdvogadoTabs() {
   const { recemCadastrado } = useAuth();
   return (
     <Tab.Navigator screenOptions={baseTabScreenOptions} initialRouteName={recemCadastrado ? 'Perfil' : undefined}>
+      <Tab.Screen
+        name="Painel"
+        component={DashboardAdvogadoScreen}
+        options={{
+          title: 'Painel',
+          tabBarLabel: 'Painel',
+          tabBarIcon: tabIcon('stats-chart'),
+          headerShown: true,
+          headerTitle: headerTituloComLogo('Painel'),
+          headerRight: headerSair,
+        }}
+      />
       <Tab.Screen
         name="Oportunidades"
         component={OportunidadesStack}
