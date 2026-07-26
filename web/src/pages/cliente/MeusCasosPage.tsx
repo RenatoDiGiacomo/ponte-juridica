@@ -63,7 +63,7 @@ export function MeusCasosPage() {
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState<CasoStatus | 'todos'>('todos');
+  const [statusFiltro, setStatusFiltro] = useState<CasoStatus | 'todos'>('aberto');
   const [areasFiltro, setAreasFiltro] = useState<string[]>([]);
   const [estadosFiltro, setEstadosFiltro] = useState<string[]>([]);
   const [ordemValor, setOrdemValor] = useState<'' | 'asc' | 'desc'>('');
@@ -76,6 +76,7 @@ export function MeusCasosPage() {
   const [notaAval, setNotaAval] = useState(5);
   const [comentarioAval, setComentarioAval] = useState('');
   const [enviandoAval, setEnviandoAval] = useState(false);
+  const [mostrarRecusadas, setMostrarRecusadas] = useState(false);
   const { mostrar } = useToast();
 
   const carregar = useCallback(async () => {
@@ -119,6 +120,9 @@ export function MeusCasosPage() {
   }, [filtrados, loading, selecionadoId]);
 
   const selecionado = filtrados.find((p) => p.id === selecionadoId) ?? null;
+
+  // Grupo de recusadas volta a fechar ao trocar de caso.
+  useEffect(() => setMostrarRecusadas(false), [selecionadoId]);
 
   async function confirmarAceite() {
     if (!propostaConfirmar) return;
@@ -183,6 +187,49 @@ export function MeusCasosPage() {
       setEncerrando(false);
     }
   }
+
+  // Card de uma proposta, com destaque por status (aceita=verde, recusada=apagada/vermelha).
+  const cardProposta = (pr: Proposta) => {
+    const cor =
+      pr.status === 'aceita'
+        ? 'border-emerald-200 bg-emerald-50'
+        : pr.status === 'recusada'
+          ? 'border-red-100 bg-red-50/50 opacity-70'
+          : 'border-slate-100';
+    return (
+      <div key={pr.id} className={`rounded-xl border p-4 ${cor}`}>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <div>
+            <p className="font-bold text-slate-800">{pr.advogado.nome}</p>
+            <p className="text-xs text-slate-400">OAB {pr.advogado.oab}</p>
+          </div>
+          <p className="shrink-0 text-lg font-bold text-secondary">R$ {Number(pr.valorEstimado).toFixed(2)}</p>
+        </div>
+        <p className="text-sm text-slate-600">{pr.mensagem}</p>
+
+        {pr.status === 'pendente' && selecionado?.status === 'aberto' && (
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPropostaConfirmar(pr)}
+              className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+            >
+              ✓ Aceitar
+            </button>
+            <button
+              type="button"
+              onClick={() => recusarProposta(pr)}
+              className="flex-1 rounded-lg border border-slate-200 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Recusar
+            </button>
+          </div>
+        )}
+        {pr.status === 'aceita' && <p className="mt-2 text-sm font-bold text-emerald-700">✓ Proposta aceita</p>}
+        {pr.status === 'recusada' && <p className="mt-2 text-sm font-semibold text-erro">✕ Recusada</p>}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -327,6 +374,7 @@ export function MeusCasosPage() {
                     {selecionado.cidade && selecionado.estado ? ` · 📍 ${selecionado.cidade}/${selecionado.estado}` : ''}
                   </p>
 
+                  {/* Avaliação — só faz sentido quando o caso encerrado teve advogado responsável (proposta aceita) */}
                   {selecionado.status === 'encerrado' && (
                     selecionado.avaliacoes && selecionado.avaliacoes.length > 0 ? (
                       <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
@@ -337,7 +385,7 @@ export function MeusCasosPage() {
                           <p className="mt-1 text-xs text-emerald-700">"{selecionado.avaliacoes[0].comentario}"</p>
                         )}
                       </div>
-                    ) : (
+                    ) : selecionado.propostas.some((p) => p.status === 'aceita') ? (
                       <button
                         type="button"
                         onClick={() => abrirAvaliacao(selecionado)}
@@ -345,7 +393,7 @@ export function MeusCasosPage() {
                       >
                         ⭐ Avaliar o advogado deste caso
                       </button>
-                    )
+                    ) : null
                   )}
 
                   <p className="mt-6 mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -355,48 +403,33 @@ export function MeusCasosPage() {
                     <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
                       Nenhuma proposta ainda neste caso.
                     </p>
+                  ) : selecionado.status === 'aberto' ? (
+                    <div className="space-y-3">{selecionado.propostas.map(cardProposta)}</div>
                   ) : (
-                    <div className="space-y-3">
-                      {selecionado.propostas.map((pr) => (
-                        <div key={pr.id} className="rounded-xl border border-slate-100 p-4">
-                          <div className="mb-2 flex items-start justify-between gap-3">
+                    // Em atendimento / encerrado: aceita primeiro; demais num grupo colapsável (fechado).
+                    (() => {
+                      const aceitas = selecionado.propostas.filter((p) => p.status === 'aceita');
+                      const outras = selecionado.propostas.filter((p) => p.status !== 'aceita');
+                      return (
+                        <div className="space-y-3">
+                          {aceitas.map(cardProposta)}
+                          {outras.length > 0 && (
                             <div>
-                              <p className="font-bold text-slate-800">{pr.advogado.nome}</p>
-                              <p className="text-xs text-slate-400">
-                                OAB {pr.advogado.oab}
-                              </p>
-                            </div>
-                            <p className="shrink-0 text-lg font-bold text-secondary">
-                              R$ {Number(pr.valorEstimado).toFixed(2)}
-                            </p>
-                          </div>
-                          <p className="text-sm text-slate-600">{pr.mensagem}</p>
-
-                          {pr.status === 'pendente' && selecionado.status === 'aberto' && (
-                            <div className="mt-3 flex gap-2">
                               <button
                                 type="button"
-                                onClick={() => setPropostaConfirmar(pr)}
-                                className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+                                onClick={() => setMostrarRecusadas((v) => !v)}
+                                aria-expanded={mostrarRecusadas}
+                                className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100"
                               >
-                                ✓ Aceitar
+                                <span>Outras propostas ({outras.length})</span>
+                                <span className="text-xs">{mostrarRecusadas ? '▾ ocultar' : '▸ mostrar'}</span>
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => recusarProposta(pr)}
-                                className="flex-1 rounded-lg border border-slate-200 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                              >
-                                Recusar
-                              </button>
+                              {mostrarRecusadas && <div className="mt-3 space-y-3">{outras.map(cardProposta)}</div>}
                             </div>
                           )}
-                          {pr.status === 'aceita' && (
-                            <p className="mt-2 text-sm font-bold text-emerald-700">✓ Proposta aceita</p>
-                          )}
-                          {pr.status === 'recusada' && <p className="mt-2 text-sm text-slate-400">Recusada</p>}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()
                   )}
                 </div>
               )}

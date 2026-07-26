@@ -25,10 +25,12 @@ export class AdvogadosService {
     q: BuscarAdvogadosQueryDto,
     clienteId?: number,
   ): Promise<PaginatedDTO<AdvogadoPublicoDTO>> {
+    const areasFiltro = q.areas?.length ? q.areas : q.area ? [q.area] : [];
     const where: Prisma.AdvogadoWhereInput = {
       softDelete: false,
       assinatura: 'ativo',
-      ...(q.area && { areas: { some: { area: { nome: q.area } } } }),
+      ...(q.busca && { nome: { contains: q.busca } }),
+      ...(areasFiltro.length && { areas: { some: { area: { nome: { in: areasFiltro } } } } }),
       ...(q.estado && { estadoAtuacao: q.estado }),
       ...(q.notaMin != null && { nota: { gte: q.notaMin } }),
     };

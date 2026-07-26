@@ -38,7 +38,7 @@ export const advogadosService = {
   porId: (id: number) => api.get(`/advogados/${id}`),
   meuPerfil: () => api.get('/advogados/perfil'),
   pesquisar: (
-    params: { area?: string; notaMin?: number; estado?: string; vinculo?: string; page: number; pageSize: number },
+    params: { busca?: string; area?: string; areas?: string; notaMin?: number; estado?: string; vinculo?: string; page: number; pageSize: number },
     signal?: AbortSignal,
   ) => api.get('/advogados/buscar', { params, signal }),
   atualizarPerfil: (data: { nome?: string; oab?: string; estadoAtuacao?: string; cidadeAtuacao?: string }) =>

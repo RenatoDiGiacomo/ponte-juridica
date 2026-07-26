@@ -3,7 +3,9 @@ import { advogadosService, conexoesService } from '../../services/api';
 import { Navbar } from '../../components/Navbar';
 import { Pagination } from '../../components/Pagination';
 import { EmptyState } from '../../components/EmptyState';
+import { MultiSelect } from '../../components/MultiSelect';
 import { useToast } from '../../components/Toast';
+import { useDebounce } from '../../hooks/useDebounce';
 import { usePaginatedQuery, type Paginated } from '../../hooks/usePaginatedQuery';
 
 const NAV = [
@@ -13,7 +15,8 @@ const NAV = [
   { label: 'Minha Conta', to: '/perfil' },
 ];
 
-const AREAS = ['', 'Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
+const AREAS = ['Criminal', 'Trabalhista', 'Família', 'Cível', 'Tributário', 'Previdenciário'];
+const AREA_OPCOES = AREAS.map((a) => ({ valor: a, label: a }));
 const UFS = ['', 'SP', 'RJ', 'MG', 'RS', 'BA', 'PR', 'SC', 'DF'];
 const PLAN_STYLE: Record<string, string> = {
   Básico: 'bg-slate-100 text-slate-600 ring-slate-200',
@@ -21,6 +24,8 @@ const PLAN_STYLE: Record<string, string> = {
   Elite: 'bg-amber-50 text-amber-700 ring-amber-300',
 };
 const AVATARS = ['bg-blue-600', 'bg-violet-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'bg-cyan-600'];
+// Controles sobre o hero navy
+const INPUT_ESCURO = 'min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-blue-100 placeholder:text-blue-200';
 
 type Advogado = {
   id: number; nome: string; oab: string; areas: string[]; especializacao?: string;
@@ -29,37 +34,38 @@ type Advogado = {
   plano?: { id: number; nome: string };
 };
 
-const SELECT = 'min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600';
-
 export function BuscarAdvogadosPage() {
-  const [area, setArea] = useState('');
+  const [busca, setBusca] = useState('');
+  const buscaDeb = useDebounce(busca, 400);
+  const [areasFiltro, setAreasFiltro] = useState<string[]>([]);
   const [notaMin, setNotaMin] = useState('');
   const [estado, setEstado] = useState('');
-  const [vinculo, setVinculo] = useState('');
   const [conectando, setConectando] = useState<number | null>(null);
   const [conectados, setConectados] = useState<Set<number>>(new Set());
   const { mostrar } = useToast();
 
   const fetcher = useCallback(
     ({ page, pageSize, signal }: { page: number; pageSize: number; signal: AbortSignal }) =>
-      advogadosService.pesquisar(
+      advogadosService
+        .pesquisar(
           {
             page,
             pageSize,
-            ...(area && { area }),
+            vinculo: 'nao', // sempre lista só os ainda não vinculados
+            ...(buscaDeb && { busca: buscaDeb }),
+            ...(areasFiltro.length && { areas: areasFiltro.join(',') }),
             ...(notaMin && { notaMin: Number(notaMin) }),
             ...(estado && { estado }),
-            ...(vinculo && { vinculo }),
           },
           signal,
         )
         .then((r) => r.data as Paginated<Advogado>),
-    [area, notaMin, estado, vinculo],
+    [buscaDeb, areasFiltro, notaMin, estado],
   );
 
   const { data, total, page, setPage, totalPages, loading } = usePaginatedQuery<Advogado>(fetcher, {
     pageSize: 9,
-    deps: [area, notaMin, estado, vinculo],
+    deps: [buscaDeb, areasFiltro, notaMin, estado],
   });
 
   async function conectar(id: number) {
@@ -80,42 +86,44 @@ export function BuscarAdvogadosPage() {
       <Navbar items={NAV} />
 
       <div className="bg-primary">
-        <div className="mx-auto max-w-7xl px-6 py-10">
+        <div className="mx-auto max-w-7xl px-6 pt-10 pb-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-blue-300">Marketplace Jurídico</p>
           <h1 className="text-3xl font-extrabold leading-tight text-white">Encontre o advogado certo</h1>
-          <p className="mt-2 text-sm text-blue-200">Filtre por área, reputação, região e vínculo.</p>
+          <p className="mt-2 text-sm text-blue-200">Busque por nome ou filtre por área, reputação e região.</p>
+        </div>
+        {/* Filtros no hero */}
+        <div className="mx-auto max-w-7xl px-6 pb-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="🔍 Buscar por nome do advogado..."
+              aria-label="Buscar por nome"
+              className={`${INPUT_ESCURO} w-full sm:w-72`}
+            />
+            <MultiSelect placeholder="Todas as áreas" opcoes={AREA_OPCOES} selecionados={areasFiltro} onChange={setAreasFiltro} variante="escuro" />
+            <select aria-label="Nota mínima" value={notaMin} onChange={(e) => setNotaMin(e.target.value)} className={INPUT_ESCURO}>
+              <option value="" className="text-slate-800">Qualquer nota</option>
+              <option value="3" className="text-slate-800">★ 3+</option>
+              <option value="4" className="text-slate-800">★ 4+</option>
+              <option value="4.5" className="text-slate-800">★ 4,5+</option>
+            </select>
+            <select aria-label="Estado de atuação" value={estado} onChange={(e) => setEstado(e.target.value)} className={INPUT_ESCURO}>
+              {UFS.map((u) => <option key={u} value={u} className="text-slate-800">{u === '' ? 'Todos os estados' : u}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-7xl px-6 py-8">
-        {/* Filtros */}
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <select aria-label="Área" value={area} onChange={(e) => setArea(e.target.value)} className={SELECT}>
-            {AREAS.map((a) => <option key={a} value={a}>{a === '' ? 'Todas as áreas' : a}</option>)}
-          </select>
-          <select aria-label="Nota mínima" value={notaMin} onChange={(e) => setNotaMin(e.target.value)} className={SELECT}>
-            <option value="">Qualquer nota</option>
-            <option value="3">★ 3+</option>
-            <option value="4">★ 4+</option>
-            <option value="4.5">★ 4,5+</option>
-          </select>
-          <select aria-label="Estado de atuação" value={estado} onChange={(e) => setEstado(e.target.value)} className={SELECT}>
-            {UFS.map((u) => <option key={u} value={u}>{u === '' ? 'Todos os estados' : u}</option>)}
-          </select>
-          <select aria-label="Vínculo" value={vinculo} onChange={(e) => setVinculo(e.target.value)} className={SELECT}>
-            <option value="">Todos</option>
-            <option value="nao">Ainda não vinculados</option>
-            <option value="vinculado">Já vinculados</option>
-          </select>
-        </div>
-
         {!loading && <p className="mb-5 text-sm text-slate-500"><span className="font-bold text-slate-800">{total}</span> {total === 1 ? 'advogado' : 'advogados'}</p>}
 
         {loading ? (
           <p className="py-16 text-center text-sm text-slate-400">Carregando...</p>
         ) : data.length === 0 ? (
           <div className="rounded-2xl border border-slate-100 bg-white">
-            <EmptyState icone="🔍" titulo="Nenhum resultado" descricao="Tente afrouxar os filtros (nota menor, outra área ou estado)." />
+            <EmptyState icone="🔍" titulo="Nenhum resultado" descricao="Tente outro nome ou afrouxe os filtros (nota menor, outra área ou estado)." />
           </div>
         ) : (
           <>
