@@ -13,7 +13,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ items = [] }: NavbarProps) {
-  const { logout, tipo } = useAuth();
+  const { logout, tipo, nome } = useAuth();
   const { pathname } = useLocation();
   const pendentes = usePropostasPendentes();
 
@@ -63,11 +63,11 @@ export function Navbar({ items = [] }: NavbarProps) {
         <div className="flex items-center gap-3 shrink-0">
           <NotificacoesBell />
           <div className="hidden sm:flex flex-col items-end">
-            <span className="text-xs font-semibold text-slate-700 capitalize">{tipo}</span>
-            <span className="text-xs text-slate-400">Portal {tipo === 'advogado' ? 'Jurídico' : 'do Cliente'}</span>
+            <span className="max-w-40 truncate text-sm font-semibold text-slate-800">{nome ?? '...'}</span>
+            <span className="text-xs text-slate-400">{tipo === 'advogado' ? 'Advogado' : 'Cliente'}</span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-primary text-xs font-bold">{tipo?.[0]?.toUpperCase()}</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+            <span className="text-sm font-bold text-primary">{(nome ?? tipo ?? '?')[0]?.toUpperCase()}</span>
           </div>
           <button
             onClick={logout}

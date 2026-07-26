@@ -6,6 +6,7 @@ type Tipo = 'cliente' | 'advogado' | null;
 interface AuthContextData {
   token: string | null;
   tipo: Tipo;
+  nome: string | null;
   isLoading: boolean;
   loginCliente(email: string, senha: string): Promise<void>;
   loginAdvogado(email: string, senha: string): Promise<void>;
@@ -17,11 +18,23 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [tipo, setTipo] = useState<Tipo>(null);
+  const [nome, setNome] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  async function carregarUsuario() {
+    try {
+      const { data } = await authService.me();
+      setNome(data?.nome ?? null);
+    } catch {
+      setNome(null);
+    }
+  }
+
   useEffect(() => {
-    setToken(localStorage.getItem('@pontejuridica:token'));
+    const t = localStorage.getItem('@pontejuridica:token');
+    setToken(t);
     setTipo(localStorage.getItem('@pontejuridica:tipo') as Tipo);
+    if (t) carregarUsuario();
     setIsLoading(false);
   }, []);
 
@@ -31,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('@pontejuridica:tipo', 'cliente');
     setToken(data.access_token);
     setTipo('cliente');
+    await carregarUsuario();
   }
 
   async function loginAdvogado(email: string, senha: string) {
@@ -39,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('@pontejuridica:tipo', 'advogado');
     setToken(data.access_token);
     setTipo('advogado');
+    await carregarUsuario();
   }
 
   function logout() {
@@ -46,10 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('@pontejuridica:tipo');
     setToken(null);
     setTipo(null);
+    setNome(null);
   }
 
   return (
-    <AuthContext.Provider value={{ token, tipo, isLoading, loginCliente, loginAdvogado, logout }}>
+    <AuthContext.Provider value={{ token, tipo, nome, isLoading, loginCliente, loginAdvogado, logout }}>
       {children}
     </AuthContext.Provider>
   );
