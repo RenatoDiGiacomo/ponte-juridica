@@ -5,9 +5,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#1E3A5F',
-        secondary: '#C9A84C',
-        background: '#F5F5F5',
+        primary: '#1a3a5c',        // alinhado ao web
+        'primary-light': '#2d5a8e',
+        secondary: '#c9a84c',
+        background: '#f8fafc',
+        // status do caso + feedback (espelham o web/index.css)
+        'status-aberto': '#2563eb',
+        'status-atendimento': '#059669',
+        'status-encerrado': '#64748b',
+        erro: '#dc2626',
+        aviso: '#d97706',
+        sucesso: '#059669',
       },
     },
   },

@@ -67,7 +67,7 @@ function AuthStack() {
 
 function MeusCasosStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: true, headerTintColor: '#1E3A5F' }}>
+    <Stack.Navigator screenOptions={{ headerShown: true, headerTintColor: '#1a3a5c' }}>
       <Stack.Screen
         name="MeusProcessos"
         component={MeusProcessosScreen}
@@ -88,7 +88,7 @@ function MeusCasosStack() {
 
 function OportunidadesStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: true, headerTintColor: '#1E3A5F' }}>
+    <Stack.Navigator screenOptions={{ headerShown: true, headerTintColor: '#1a3a5c' }}>
       <Stack.Screen
         name="ListaOportunidades"
         component={OportunidadesScreen}
@@ -118,12 +118,12 @@ const headerTituloComLogo = (titulo: string) => () => (
       style={{ width: 32, height: 22, marginRight: 8 }}
       resizeMode="contain"
     />
-    <Text style={{ fontSize: 17, fontWeight: '700', color: '#1E3A5F' }}>{titulo}</Text>
+    <Text style={{ fontSize: 17, fontWeight: '700', color: '#1a3a5c' }}>{titulo}</Text>
   </View>
 );
 
 const baseTabScreenOptions = {
-  tabBarActiveTintColor: '#1E3A5F',
+  tabBarActiveTintColor: '#1a3a5c',
   tabBarInactiveTintColor: '#9CA3AF',
   tabBarStyle: { height: 88, paddingTop: 12, paddingBottom: 14 },
   tabBarLabelStyle: { fontSize: 12, fontWeight: '600' as const, marginTop: 6 },
@@ -234,7 +234,7 @@ function AppNavigator() {
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" color="#1E3A5F" />
+        <ActivityIndicator size="large" color="#1a3a5c" />
       </View>
     );
   }

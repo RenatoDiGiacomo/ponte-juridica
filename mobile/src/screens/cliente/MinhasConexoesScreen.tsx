@@ -5,11 +5,14 @@ import {
 } from 'react-native';
 import { conexoesService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { EmptyState } from '../../components/EmptyState';
 
 export function MinhasConexoesScreen() {
   const [conexoes, setConexoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [removerId, setRemoverId] = useState<number | null>(null);
   const { logout } = useAuth();
 
   const carregar = useCallback(async () => {
@@ -24,40 +27,37 @@ export function MinhasConexoesScreen() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  async function remover(id: number) {
-    Alert.alert('Remover vínculo', 'Deseja remover este advogado?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Remover', style: 'destructive', onPress: async () => {
-          await conexoesService.remover(id);
-          setConexoes((prev) => prev.filter((c) => c.id !== id));
-        },
-      },
-    ]);
+  async function confirmarRemocao() {
+    if (removerId === null) return;
+    const id = removerId;
+    setRemoverId(null);
+    try {
+      await conexoesService.remover(id);
+      setConexoes((prev) => prev.filter((c) => c.id !== id));
+    } catch (e: any) {
+      Alert.alert('Erro', e.response?.data?.message ?? 'Falha ao remover');
+    }
   }
 
-  if (loading) return <ActivityIndicator className="mt-20" color="#1E3A5F" />;
+  if (loading) return <ActivityIndicator className="mt-20" color="#1a3a5c" />;
 
   return (
     <View className="flex-1 bg-background">
+      {/* Hero */}
+      <View className="flex-row items-center justify-between bg-primary px-5 pb-4 pt-3">
+        <Text className="text-blue-200 text-sm">
+          {conexoes.length} {conexoes.length === 1 ? 'advogado' : 'advogados'}
+        </Text>
+        <TouchableOpacity onPress={logout}><Text className="text-sm font-medium text-blue-100">Sair</Text></TouchableOpacity>
+      </View>
+
       <FlatList
         data={conexoes}
         keyExtractor={(i) => String(i.id)}
         contentContainerClassName="px-4 py-4 pb-10"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregar(); }} />}
-        ListHeaderComponent={
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-primary">Meus Contatos</Text>
-            <TouchableOpacity onPress={logout}>
-              <Text className="text-red-500 text-sm font-medium">Sair</Text>
-            </TouchableOpacity>
-          </View>
-        }
         ListEmptyComponent={
-          <View className="items-center py-20">
-            <Text className="text-gray-400 text-lg">Nenhum advogado vinculado</Text>
-            <Text className="text-gray-300 text-sm mt-2">Busque um advogado e solicite contato</Text>
-          </View>
+          <EmptyState icone="⚖️" titulo="Nenhum advogado vinculado" descricao="Busque um advogado e solicite contato." />
         }
         renderItem={({ item }) => {
           const adv = item.advogado ?? {};
@@ -75,7 +75,7 @@ export function MinhasConexoesScreen() {
                   <Text className="text-secondary font-medium text-sm">{(adv.areas ?? []).join(', ') || '—'}</Text>
                   <Text className="text-gray-400 text-xs">OAB: {adv.oab}</Text>
                 </View>
-                <TouchableOpacity onPress={() => remover(item.id)} className="p-2">
+                <TouchableOpacity onPress={() => setRemoverId(item.id)} className="p-2">
                   <Text className="text-red-400 text-xl">×</Text>
                 </TouchableOpacity>
               </View>
@@ -97,6 +97,16 @@ export function MinhasConexoesScreen() {
             </View>
           );
         }}
+      />
+
+      <ConfirmModal
+        aberto={removerId !== null}
+        titulo="Remover vínculo"
+        mensagem="Deseja remover este advogado dos seus contatos?"
+        textoConfirmar="Remover"
+        destrutivo
+        onConfirmar={confirmarRemocao}
+        onCancelar={() => setRemoverId(null)}
       />
     </View>
   );

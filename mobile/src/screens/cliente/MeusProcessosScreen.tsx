@@ -1,49 +1,49 @@
-import React, { useCallback, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-} from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { processosService } from '../../services/api';
+import { StatusBadge, type CasoStatus } from '../../components/StatusBadge';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { EmptyState } from '../../components/EmptyState';
 
 type Proposta = {
   id: number;
   mensagem: string;
   valorEstimado: string;
-  status: 'pendente' | 'aceita' | 'recusada';
-  advogado: { id: number; nome: string; especializacao: string; oab: string };
+  status: 'pendente' | 'aceita' | 'recusada' | 'cancelada';
+  justificativa?: string | null;
+  advogado: { id: number; nome: string; oab: string };
 };
-
 type Processo = {
   id: number;
   titulo: string;
   descricao: string;
   especializacao: string;
-  status: 'aberto' | 'em_atendimento' | 'encerrado';
+  status: CasoStatus;
   dataCriacao: string;
   propostas: Proposta[];
 };
 
-const STATUS_COR: Record<Processo['status'], string> = {
-  aberto: 'bg-blue-100 text-blue-700',
-  em_atendimento: 'bg-green-100 text-green-700',
-  encerrado: 'bg-gray-200 text-gray-600',
-};
-const STATUS_LABEL: Record<Processo['status'], string> = {
-  aberto: 'Aberto',
-  em_atendimento: 'Em atendimento',
-  encerrado: 'Encerrado',
-};
+const FILTROS: { label: string; valor: CasoStatus | 'todos' }[] = [
+  { label: 'Todos', valor: 'todos' },
+  { label: 'Aberto', valor: 'aberto' },
+  { label: 'Em atendimento', valor: 'em_atendimento' },
+  { label: 'Encerrado', valor: 'encerrado' },
+];
+
+function menorValor(p: Processo): number {
+  if (!p.propostas.length) return Number.POSITIVE_INFINITY;
+  return Math.min(...p.propostas.map((pr) => Number(pr.valorEstimado)));
+}
 
 export function MeusProcessosScreen({ navigation }: any) {
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filtro, setFiltro] = useState<CasoStatus | 'todos'>('aberto');
+  const [ordem, setOrdem] = useState<'' | 'asc' | 'desc'>('');
+  const [confirmar, setConfirmar] = useState<Proposta | null>(null);
+  const [aceitando, setAceitando] = useState(false);
 
   async function carregar() {
     try {
@@ -57,32 +57,26 @@ export function MeusProcessosScreen({ navigation }: any) {
     }
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      carregar();
-    }, []),
-  );
+  useFocusEffect(useCallback(() => { carregar(); }, []));
 
-  async function aceitarProposta(p: Proposta) {
-    Alert.alert(
-      'Aceitar proposta',
-      `Aceitar a proposta de ${p.advogado.nome} por R$ ${Number(p.valorEstimado).toFixed(2)}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aceitar',
-          onPress: async () => {
-            try {
-              await processosService.aceitarProposta(p.id);
-              Alert.alert('Sucesso', 'Proposta aceita! O advogado já está vinculado a você.');
-              carregar();
-            } catch (e: any) {
-              Alert.alert('Erro', e.response?.data?.message ?? 'Falha ao aceitar');
-            }
-          },
-        },
-      ],
-    );
+  const filtrados = useMemo(() => {
+    let lista = filtro === 'todos' ? processos : processos.filter((p) => p.status === filtro);
+    if (ordem) lista = [...lista].sort((a, b) => (ordem === 'asc' ? menorValor(a) - menorValor(b) : menorValor(b) - menorValor(a)));
+    return lista;
+  }, [processos, filtro, ordem]);
+
+  async function confirmarAceite() {
+    if (!confirmar) return;
+    setAceitando(true);
+    try {
+      await processosService.aceitarProposta(confirmar.id);
+      setConfirmar(null);
+      await carregar();
+    } catch (e: any) {
+      Alert.alert('Erro', e.response?.data?.message ?? 'Falha ao aceitar');
+    } finally {
+      setAceitando(false);
+    }
   }
 
   async function recusarProposta(p: Proposta) {
@@ -94,109 +88,128 @@ export function MeusProcessosScreen({ navigation }: any) {
     }
   }
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" color="#1E3A5F" />
-      </View>
-    );
-  }
+  const cicloOrdem = () => setOrdem((o) => (o === '' ? 'asc' : o === 'asc' ? 'desc' : ''));
 
   return (
     <View className="flex-1 bg-background">
-      <FlatList
-        data={processos}
-        keyExtractor={(i) => String(i.id)}
-        contentContainerClassName="px-4 py-4 pb-24"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              carregar();
-            }}
-          />
-        }
-        ListEmptyComponent={
-          <View className="items-center mt-20 px-6">
-            <Text className="text-gray-500 text-center text-base">
-              Você ainda não publicou nenhum caso. Toque no botão "+" para criar.
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
-            <View className="flex-row justify-between items-start mb-1">
-              <Text className="text-lg font-bold text-primary flex-1 pr-2" numberOfLines={2}>
-                {item.titulo}
-              </Text>
-              <View className={`px-2 py-1 rounded-full ${STATUS_COR[item.status].split(' ')[0]}`}>
-                <Text className={`text-xs font-semibold ${STATUS_COR[item.status].split(' ')[1]}`}>
-                  {STATUS_LABEL[item.status]}
-                </Text>
-              </View>
+      {/* Hero */}
+      <View className="bg-primary px-5 pb-4 pt-3">
+        <Text className="text-blue-200 text-sm">
+          {loading ? '...' : `${processos.length} ${processos.length === 1 ? 'caso publicado' : 'casos publicados'}`}
+        </Text>
+        {/* Filtros + ordenação */}
+        <View className="mt-3 flex-row items-center">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
+            <View className="flex-row gap-2 pr-2">
+              {FILTROS.map((f) => {
+                const ativo = filtro === f.valor;
+                return (
+                  <TouchableOpacity key={f.valor} onPress={() => setFiltro(f.valor)} className={`rounded-full px-3 py-1.5 ${ativo ? 'bg-white' : 'bg-white/10 border border-white/20'}`}>
+                    <Text className={`text-xs font-semibold ${ativo ? 'text-primary' : 'text-blue-100'}`}>{f.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            <Text className="text-secondary font-medium text-sm">{item.especializacao}</Text>
-            <Text className="text-gray-600 text-sm mt-2" numberOfLines={3}>
-              {item.descricao}
+          </ScrollView>
+          <TouchableOpacity onPress={cicloOrdem} className={`ml-2 rounded-full px-3 py-1.5 ${ordem ? 'bg-secondary' : 'bg-white/10 border border-white/20'}`}>
+            <Text className={`text-xs font-bold ${ordem ? 'text-primary' : 'text-blue-100'}`}>
+              {ordem === 'asc' ? 'Valor ↑' : ordem === 'desc' ? 'Valor ↓' : 'Ordenar'}
             </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-            {item.propostas.length > 0 && (
-              <View className="mt-3 pt-3 border-t border-gray-100">
-                <Text className="text-gray-700 font-semibold mb-2">
-                  Propostas recebidas ({item.propostas.length})
-                </Text>
-                {item.propostas.map((p) => (
-                  <View key={p.id} className="bg-gray-50 rounded-xl p-3 mb-2">
-                    <View className="flex-row justify-between">
-                      <Text className="font-semibold text-primary">{p.advogado.nome}</Text>
-                      <Text className="font-bold text-secondary">
-                        R$ {Number(p.valorEstimado).toFixed(2)}
-                      </Text>
-                    </View>
-                    <Text className="text-xs text-gray-500 mb-1">
-                      OAB {p.advogado.oab} · {p.advogado.especializacao}
-                    </Text>
-                    <Text className="text-gray-700 text-sm">{p.mensagem}</Text>
-
-                    {p.status === 'pendente' && item.status === 'aberto' && (
-                      <View className="flex-row gap-2 mt-2">
-                        <TouchableOpacity
-                          onPress={() => aceitarProposta(p)}
-                          className="flex-1 bg-primary py-2 rounded-lg items-center"
-                        >
-                          <Text className="text-white font-medium">Aceitar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => recusarProposta(p)}
-                          className="flex-1 bg-white border border-gray-300 py-2 rounded-lg items-center"
-                        >
-                          <Text className="text-gray-600 font-medium">Recusar</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                    {p.status === 'aceita' && (
-                      <Text className="mt-2 text-green-700 font-semibold text-sm">
-                        ✓ Aceita
-                      </Text>
-                    )}
-                    {p.status === 'recusada' && (
-                      <Text className="mt-2 text-gray-500 text-sm">Recusada</Text>
-                    )}
-                  </View>
-                ))}
+      {loading ? (
+        <ActivityIndicator className="mt-20" size="large" color="#1a3a5c" />
+      ) : (
+        <FlatList
+          data={filtrados}
+          keyExtractor={(i) => String(i.id)}
+          contentContainerClassName="px-4 py-4 pb-24"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregar(); }} />}
+          ListEmptyComponent={
+            <EmptyState
+              icone="📝"
+              titulo={processos.length === 0 ? 'Nenhum caso publicado' : 'Nenhum caso neste filtro'}
+              descricao={processos.length === 0 ? 'Toque no botão "+" para publicar seu primeiro caso.' : 'Tente outro filtro.'}
+            />
+          }
+          renderItem={({ item }) => (
+            <View className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
+              <View className="mb-1 flex-row items-start justify-between gap-2">
+                <Text className="flex-1 text-base font-bold text-slate-800" numberOfLines={2}>{item.titulo}</Text>
+                <StatusBadge status={item.status} />
               </View>
-            )}
-          </View>
-        )}
-      />
+              <View className="mb-2 self-start rounded-full bg-primary/10 px-2 py-0.5">
+                <Text className="text-xs font-semibold text-primary">{item.especializacao}</Text>
+              </View>
+              <Text className="text-sm text-slate-600" numberOfLines={3}>{item.descricao}</Text>
 
+              {item.propostas.length > 0 && (
+                <View className="mt-3 border-t border-slate-100 pt-3">
+                  <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Propostas recebidas ({item.propostas.length})
+                  </Text>
+                  {item.propostas.map((p) => {
+                    const cor = p.status === 'aceita' ? 'border-emerald-200 bg-emerald-50'
+                      : p.status === 'recusada' ? 'border-red-100 bg-red-50/60'
+                      : p.status === 'cancelada' ? 'border-slate-200 bg-slate-50'
+                      : 'border-slate-100 bg-slate-50';
+                    return (
+                      <View key={p.id} className={`mb-2 rounded-xl border p-3 ${cor}`}>
+                        <View className="flex-row justify-between">
+                          <Text className="font-bold text-slate-800">{p.advogado.nome}</Text>
+                          <Text className="font-bold text-secondary">R$ {Number(p.valorEstimado).toFixed(2)}</Text>
+                        </View>
+                        <Text className="mb-1 text-xs text-slate-400">OAB {p.advogado.oab}</Text>
+                        <Text className="text-sm text-slate-600">{p.mensagem}</Text>
+
+                        {p.status === 'pendente' && item.status === 'aberto' && (
+                          <View className="mt-2 flex-row gap-2">
+                            <TouchableOpacity onPress={() => setConfirmar(p)} className="flex-1 items-center rounded-lg bg-primary py-2">
+                              <Text className="font-bold text-white">✓ Aceitar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => recusarProposta(p)} className="flex-1 items-center rounded-lg border border-slate-200 bg-white py-2">
+                              <Text className="font-medium text-slate-600">Recusar</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        {p.status === 'aceita' && <Text className="mt-2 text-sm font-bold text-emerald-700">✓ Proposta aceita</Text>}
+                        {p.status === 'recusada' && <Text className="mt-2 text-sm font-semibold text-erro">✕ Recusada</Text>}
+                        {p.status === 'cancelada' && (
+                          <View className="mt-2">
+                            <Text className="text-sm font-semibold text-slate-500">✕ Cancelada pelo advogado</Text>
+                            {p.justificativa ? <Text className="mt-0.5 text-xs text-slate-500">Motivo: {p.justificativa}</Text> : null}
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+        />
+      )}
+
+      {/* FAB publicar caso (gold, glifo centralizado) */}
       <TouchableOpacity
         onPress={() => navigation.navigate('CriarProcesso')}
-        className="absolute bottom-6 right-6 bg-primary w-14 h-14 rounded-full items-center justify-center shadow-lg"
+        className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-secondary shadow-lg"
+        accessibilityLabel="Publicar novo caso"
       >
-        <Text className="text-white text-3xl leading-7">+</Text>
+        <Text className="text-3xl font-light text-primary" style={{ marginTop: -2 }}>+</Text>
       </TouchableOpacity>
+
+      <ConfirmModal
+        aberto={confirmar !== null}
+        titulo="Aceitar proposta"
+        mensagem={confirmar ? `Aceitar a proposta de ${confirmar.advogado.nome} por R$ ${Number(confirmar.valorEstimado).toFixed(2)}? O caso passa para "Em atendimento".` : ''}
+        textoConfirmar="Aceitar"
+        carregando={aceitando}
+        onConfirmar={confirmarAceite}
+        onCancelar={() => setConfirmar(null)}
+      />
     </View>
   );
 }
