@@ -231,9 +231,12 @@ export function MeusCasosAdvogadoPage() {
             <EmptyState icone="📁" titulo="Você ainda não tem casos" descricao="Envie propostas em Oportunidades para começar a atuar." />
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-            <aside className="overflow-hidden rounded-2xl bg-[#16314e] p-4">
-              <ul className="space-y-1.5">
+          <div className="grid items-start gap-4 lg:grid-cols-[320px_1fr]">
+            <aside className="flex flex-col overflow-hidden rounded-2xl bg-[#16314e] p-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-7rem)]">
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-[#7e9bbd]">
+                {filtrados.length} {filtrados.length === 1 ? 'caso' : 'casos'}
+              </p>
+              <ul className="-mr-1 space-y-1.5 overflow-y-auto pr-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar]:w-1.5">
                 {filtrados.map((c) => {
                   const ativo = c.id === selecionadoId;
                   return (
