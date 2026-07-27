@@ -190,17 +190,6 @@ export function MeusCasosAdvogadoPage() {
           <div className="mx-auto max-w-6xl px-6 pb-5">
             <div className="flex flex-wrap items-center gap-3">
               <FilterChips opcoes={STATUS_OPCOES} valor={filtro} onChange={setFiltro} variante="escuro" />
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-blue-300">🔍</span>
-                <input
-                  type="search"
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Buscar por cliente ou título..."
-                  aria-label="Buscar por cliente ou título do caso"
-                  className="min-h-10 w-60 rounded-lg border border-white/20 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-blue-300 focus:border-white/40 focus:outline-none"
-                />
-              </div>
               <label className="flex items-center gap-1 text-xs text-blue-200">
                 De
                 <input type="date" aria-label="Criado a partir de" value={dataDe} max={dataAte || undefined} onChange={(e) => setDataDe(e.target.value)} className={DATE_INPUT} />
@@ -233,6 +222,14 @@ export function MeusCasosAdvogadoPage() {
         ) : (
           <div className="grid items-start gap-4 lg:grid-cols-[320px_1fr]">
             <aside className="flex flex-col overflow-hidden rounded-2xl bg-[#16314e] p-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-7rem)]">
+              <input
+                type="search"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="🔍 Buscar por cliente ou título..."
+                aria-label="Buscar por cliente ou título do caso"
+                className="mb-2 w-full rounded-lg border border-white/10 bg-[#0f273f] px-3 py-2 text-sm text-white placeholder:text-[#7e9bbd]"
+              />
               <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-[#7e9bbd]">
                 {filtrados.length} {filtrados.length === 1 ? 'caso' : 'casos'}
               </p>
