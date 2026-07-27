@@ -392,16 +392,21 @@ export class ProcessosService {
     return cancelada;
   }
 
-  /** Casos em que o advogado está envolvido (enviou proposta), com sua proposta e o histórico de relatórios. */
-  meusCasosAdvogado(advogadoId: number) {
-    return this.prisma.processo.findMany({
+  /**
+   * Casos em que o advogado está envolvido (enviou proposta), sob a ÓTICA dele:
+   * - `status` é o status para o advogado (recusada/cancelada → "encerrado" pra ele);
+   * - relatórios/andamento só aparecem para o RESPONSÁVEL (proposta aceita).
+   * Quem foi recusado não acompanha o progresso do processo (privacidade).
+   */
+  async meusCasosAdvogado(advogadoId: number) {
+    const casos = await this.prisma.processo.findMany({
       where: { softDelete: false, propostas: { some: { advogadoId, softDelete: false } } },
       orderBy: { dataCriacao: 'desc' },
       include: {
         cliente: { select: { id: true, nome: true } },
         propostas: {
           where: { advogadoId, softDelete: false },
-          select: { id: true, status: true, valorEstimado: true },
+          select: { id: true, status: true, valorEstimado: true, justificativa: true },
         },
         relatorios: {
           where: { softDelete: false },
@@ -409,6 +414,21 @@ export class ProcessosService {
           include: { advogado: { select: { nome: true } } },
         },
       },
+    });
+
+    return casos.map((c) => {
+      const minha = c.propostas[0];
+      const souResponsavel = minha?.status === 'aceita';
+      const perdida = minha?.status === 'recusada' || minha?.status === 'cancelada';
+      return {
+        ...c,
+        // status na visão do advogado: perdeu → encerrado; senão o status real do caso
+        status: perdida ? 'encerrado' : c.status,
+        souResponsavel,
+        minhaPropostaStatus: minha?.status ?? null,
+        // andamento só para o responsável — recusado NÃO vê os relatórios
+        relatorios: souResponsavel ? c.relatorios : [],
+      };
     });
   }
 

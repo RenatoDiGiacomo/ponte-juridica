@@ -66,6 +66,7 @@ export function MeusCasosAdvogadoScreen() {
   const sel = casos.find((c) => c.id === selId) ?? null;
   const minhaProposta = sel?.propostas?.[0];
   const souResponsavel = minhaProposta?.status === 'aceita';
+  const perdida = minhaProposta?.status === 'recusada' || minhaProposta?.status === 'cancelada';
 
   function fechar() {
     setSelId(null);
@@ -227,6 +228,15 @@ export function MeusCasosAdvogadoScreen() {
                   </View>
                 )}
 
+                {perdida ? (
+                  <View className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <Text className="text-center text-sm font-semibold text-slate-600">
+                      {minhaProposta?.status === 'cancelada' ? 'Você cancelou sua proposta neste caso.' : 'Sua proposta não foi selecionada neste caso.'}
+                    </Text>
+                    <Text className="mt-1 text-center text-xs text-slate-400">O caso está encerrado para você — o andamento fica visível apenas ao advogado responsável.</Text>
+                  </View>
+                ) : (
+                <>
                 <Text className="text-xs font-bold text-gray-400 uppercase tracking-wide mt-5 mb-2">
                   Relatórios de situação ({selAtual.relatorios?.length ?? 0})
                 </Text>
@@ -296,6 +306,8 @@ export function MeusCasosAdvogadoScreen() {
                       )}
                     </View>
                   ))
+                )}
+                </>
                 )}
 
                 <TouchableOpacity onPress={fechar} className="bg-gray-100 py-3 rounded-xl items-center mt-4">

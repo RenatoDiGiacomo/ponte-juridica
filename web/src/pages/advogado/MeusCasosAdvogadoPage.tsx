@@ -95,6 +95,7 @@ export function MeusCasosAdvogadoPage() {
   const sel = filtrados.find((c) => c.id === selecionadoId) ?? null;
   const minhaProposta = sel?.propostas[0];
   const souResponsavel = minhaProposta?.status === 'aceita';
+  const perdida = minhaProposta?.status === 'recusada' || minhaProposta?.status === 'cancelada';
 
   async function registrarRelatorio() {
     if (!sel || texto.trim().length < 3) return;
@@ -268,6 +269,15 @@ export function MeusCasosAdvogadoPage() {
                     </p>
                   )}
 
+                  {perdida ? (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
+                      <p className="text-sm font-semibold text-slate-600">
+                        {minhaProposta?.status === 'cancelada' ? 'Você cancelou sua proposta neste caso.' : 'Sua proposta não foi selecionada neste caso.'}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">O caso está encerrado para você — o andamento fica visível apenas ao advogado responsável.</p>
+                    </div>
+                  ) : (
+                  <>
                   <p className="mt-6 mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
                     Relatórios de situação ({sel.relatorios.length})
                   </p>
@@ -351,6 +361,8 @@ export function MeusCasosAdvogadoPage() {
                         </div>
                       ))}
                     </div>
+                  )}
+                  </>
                   )}
                 </div>
               )}
