@@ -45,6 +45,7 @@ export function MeusCasosAdvogadoPage() {
   const [casos, setCasos] = useState<Caso[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<CasoStatus | 'todos'>('aberto');
+  const [busca, setBusca] = useState('');
   const [dataDe, setDataDe] = useState('');
   const [dataAte, setDataAte] = useState('');
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
@@ -74,14 +75,16 @@ export function MeusCasosAdvogadoPage() {
   const filtrados = useMemo(() => {
     const de = dataDe ? new Date(`${dataDe}T00:00:00`) : null;
     const ate = dataAte ? new Date(`${dataAte}T23:59:59`) : null;
+    const termo = busca.trim().toLowerCase();
     return casos.filter((c) => {
       if (filtro !== 'todos' && c.status !== filtro) return false;
+      if (termo && !c.cliente.nome.toLowerCase().includes(termo) && !c.titulo.toLowerCase().includes(termo)) return false;
       const d = new Date(c.dataCriacao);
       if (de && d < de) return false;
       if (ate && d > ate) return false;
       return true;
     });
-  }, [casos, filtro, dataDe, dataAte]);
+  }, [casos, filtro, busca, dataDe, dataAte]);
 
   useEffect(() => {
     if (loading) return;
@@ -187,6 +190,17 @@ export function MeusCasosAdvogadoPage() {
           <div className="mx-auto max-w-6xl px-6 pb-5">
             <div className="flex flex-wrap items-center gap-3">
               <FilterChips opcoes={STATUS_OPCOES} valor={filtro} onChange={setFiltro} variante="escuro" />
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-blue-300">🔍</span>
+                <input
+                  type="search"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar por cliente ou título..."
+                  aria-label="Buscar por cliente ou título do caso"
+                  className="min-h-10 w-60 rounded-lg border border-white/20 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-blue-300 focus:border-white/40 focus:outline-none"
+                />
+              </div>
               <label className="flex items-center gap-1 text-xs text-blue-200">
                 De
                 <input type="date" aria-label="Criado a partir de" value={dataDe} max={dataAte || undefined} onChange={(e) => setDataDe(e.target.value)} className={DATE_INPUT} />
@@ -195,10 +209,10 @@ export function MeusCasosAdvogadoPage() {
                 Até
                 <input type="date" aria-label="Criado até" value={dataAte} min={dataDe || undefined} onChange={(e) => setDataAte(e.target.value)} className={DATE_INPUT} />
               </label>
-              {(dataDe || dataAte || filtro !== 'todos') && (
+              {(dataDe || dataAte || filtro !== 'todos' || busca) && (
                 <button
                   type="button"
-                  onClick={() => { setFiltro('todos'); setDataDe(''); setDataAte(''); }}
+                  onClick={() => { setFiltro('todos'); setBusca(''); setDataDe(''); setDataAte(''); }}
                   className="min-h-10 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-blue-100 hover:bg-white/20"
                 >
                   Limpar

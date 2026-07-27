@@ -24,6 +24,7 @@ export function MeusCasosAdvogadoScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filtro, setFiltro] = useState('aberto');
+  const [busca, setBusca] = useState('');
   const [selId, setSelId] = useState<number | null>(null);
   const [texto, setTexto] = useState('');
   const [editId, setEditId] = useState<number | null>(null);
@@ -62,7 +63,12 @@ export function MeusCasosAdvogadoScreen() {
 
   useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
-  const filtrados = filtro === 'todos' ? casos : casos.filter((c) => c.status === filtro);
+  const termo = busca.trim().toLowerCase();
+  const filtrados = casos.filter((c) => {
+    if (filtro !== 'todos' && c.status !== filtro) return false;
+    if (termo && !(c.cliente?.nome ?? '').toLowerCase().includes(termo) && !(c.titulo ?? '').toLowerCase().includes(termo)) return false;
+    return true;
+  });
   const sel = casos.find((c) => c.id === selId) ?? null;
   const minhaProposta = sel?.propostas?.[0];
   const souResponsavel = minhaProposta?.status === 'aceita';
@@ -129,8 +135,23 @@ export function MeusCasosAdvogadoScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Hero com filtros de status */}
+      {/* Hero com busca + filtros de status */}
       <View className="bg-primary px-4 pb-4 pt-3">
+        <View className="mb-3 flex-row items-center rounded-xl border border-white/20 bg-white/10 px-3">
+          <Text className="text-base text-blue-200">🔍</Text>
+          <TextInput
+            value={busca}
+            onChangeText={setBusca}
+            placeholder="Buscar por cliente ou título..."
+            placeholderTextColor="#9db8d6"
+            className="flex-1 py-2.5 pl-2 text-sm text-white"
+          />
+          {busca.length > 0 && (
+            <TouchableOpacity onPress={() => setBusca('')} className="pl-2">
+              <Text className="text-lg text-blue-200">×</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2 pr-2">
             {FILTROS.map((f) => {
